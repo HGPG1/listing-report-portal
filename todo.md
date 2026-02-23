@@ -78,3 +78,8 @@
 - [x] No green colors in UI (brand constraint enforced)
 - [x] All logo references use CDN URLs (no local file dependencies)
 - [x] Cron job confirmed running at startup
+
+## Round 2 — Mobile + Features
+- [x] Fix AdminLayout mobile sidebar (hamburger toggle, overlay drawer, full-width main on mobile)
+- [x] Add hero photo S3 upload widget to listing Details tab
+- [x] Add seller-view notification: fire notifyOwner() when magic link is validated/opened

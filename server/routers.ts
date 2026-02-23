@@ -35,6 +35,8 @@ import {
 } from "./db";
 import { sendWeeklyReportToFub } from "./fub";
 import { runWeeklyEmailJob } from "./cron";
+import { notifyOwner } from "./_core/notification";
+import { storagePut } from "./storage";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
@@ -180,7 +182,31 @@ const magicLinksRouter = router({
       }
       const data = await getFullListingData(link.listingId);
       if (!data) throw new TRPCError({ code: "NOT_FOUND", message: "Listing not found" });
+      // Fire-and-forget owner notification — don't block the response
+      notifyOwner({
+        title: `Seller viewed report: ${data.listing.address}`,
+        content: `${data.listing.sellerName ?? "Your seller"} just opened their marketing report for ${data.listing.address}. View the listing: ${BASE_URL}/admin/listings/${data.listing.id}/edit`,
+      }).catch(() => {/* non-critical */});
       return data;
+    }),
+
+  // Upload hero/agent photo to S3 and return URL
+  uploadPhoto: adminProcedure
+    .input(z.object({
+      base64: z.string(),          // data:image/...;base64,...
+      filename: z.string(),
+      listingId: z.number(),
+      type: z.enum(["hero", "agent"]),
+    }))
+    .mutation(async ({ input }) => {
+      const matches = input.base64.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid base64 image" });
+      const contentType = matches[1];
+      const buffer = Buffer.from(matches[2], "base64");
+      const ext = input.filename.split(".").pop() ?? "jpg";
+      const key = `listings/${input.listingId}/${input.type}-${nanoid(8)}.${ext}`;
+      const { url } = await storagePut(key, buffer, contentType);
+      return { url };
     }),
 });
 

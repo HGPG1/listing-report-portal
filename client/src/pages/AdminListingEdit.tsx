@@ -6,11 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
-import {
-  ArrowLeft, Save, Link, Send, RefreshCw, Plus, Trash2,
-  BarChart2, Home, Users, FileText, Mail, ExternalLink, Copy, Check
+import { ArrowLeft, Save, Link, Send, RefreshCw, Plus, Trash2,
+  BarChart2, Home, Users, FileText, Mail, ExternalLink, Copy, Check, Upload, X as XIcon
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -84,6 +83,31 @@ export default function AdminListingEdit({ id }: Props) {
 
   // Local form state
   const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const [uploadingPhoto, setUploadingPhoto] = useState<"hero" | "agent" | null>(null);
+  const heroInputRef = useRef<HTMLInputElement>(null);
+  const agentInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadPhotoMutation = trpc.magicLinks.uploadPhoto.useMutation({
+    onSuccess: (r, vars) => {
+      setEditForm(f => ({ ...f, [vars.type === "hero" ? "heroPhotoUrl" : "agentPhotoUrl"]: r.url }));
+      toast.success(`${vars.type === "hero" ? "Hero" : "Agent"} photo uploaded.`);
+      setUploadingPhoto(null);
+    },
+    onError: (e) => { toast.error(e.message); setUploadingPhoto(null); },
+  });
+
+  const handlePhotoFile = (type: "hero" | "agent") => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { toast.error("Photo must be under 8 MB."); return; }
+    setUploadingPhoto(type);
+    const reader = new FileReader();
+    reader.onload = () => {
+      uploadPhotoMutation.mutate({ base64: reader.result as string, filename: file.name, listingId: id, type });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
   const [weeklyForm, setWeeklyForm] = useState({ weekOf: format(new Date(), "yyyy-MM-dd"), zillowViews: "0", realtorViews: "0", redfinViews: "0", websiteViews: "0", totalImpressions: "0", totalVideoViews: "0", totalShowings: "0" });
   const [showingForm, setShowingForm] = useState({ showingDate: format(new Date(), "yyyy-MM-dd"), buyerAgentName: "", feedbackSummary: "", starRating: "" });
   const [offerForm, setOfferForm] = useState({ offerDate: format(new Date(), "yyyy-MM-dd"), offerPrice: "", status: "Active", notes: "" });
@@ -222,7 +246,6 @@ export default function AdminListingEdit({ id }: Props) {
                   { key: "zip", label: "ZIP" },
                   { key: "mlsNumber", label: "MLS Number" },
                   { key: "listPrice", label: "List Price" },
-                  { key: "heroPhotoUrl", label: "Hero Photo URL" },
                 ].map(({ key, label }) => (
                   <div key={key}>
                     <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">{label}</Label>
@@ -233,6 +256,46 @@ export default function AdminListingEdit({ id }: Props) {
                     />
                   </div>
                 ))}
+                {/* Hero Photo Upload */}
+                <div className="col-span-2">
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Hero Photo</Label>
+                  <div className="mt-2 flex items-start gap-4">
+                    {getField("heroPhotoUrl") ? (
+                      <div className="relative w-40 h-28 rounded-lg overflow-hidden border border-[#D1D9DF] flex-shrink-0">
+                        <img src={getField("heroPhotoUrl")} alt="Hero" className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => setEditForm(f => ({ ...f, heroPhotoUrl: "" }))}
+                          className="absolute top-1 right-1 bg-[#2A384C]/70 text-white rounded-full p-0.5 hover:bg-[#2A384C] transition-colors"
+                        >
+                          <XIcon size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-40 h-28 rounded-lg border-2 border-dashed border-[#D1D9DF] flex items-center justify-center bg-[#f5f7f9] flex-shrink-0">
+                        <p className="font-body text-xs text-[#A0B2C2] text-center px-2">No photo yet</p>
+                      </div>
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <input ref={heroInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoFile("hero")} />
+                      <Button
+                        type="button" variant="outline" size="sm"
+                        className="font-heading text-xs border-[#D1D9DF] w-full"
+                        onClick={() => heroInputRef.current?.click()}
+                        disabled={uploadingPhoto === "hero"}
+                      >
+                        <Upload size={13} className="mr-1.5" />
+                        {uploadingPhoto === "hero" ? "Uploading..." : "Upload Photo"}
+                      </Button>
+                      <p className="font-body text-xs text-[#A0B2C2]">Or paste a URL directly:</p>
+                      <Input
+                        value={getField("heroPhotoUrl")}
+                        onChange={e => setEditForm(f => ({ ...f, heroPhotoUrl: e.target.value }))}
+                        placeholder="https://..."
+                        className="font-body border-[#D1D9DF] text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
                 <div>
                   <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Status</Label>
                   <Select value={getField("status")} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
@@ -267,6 +330,45 @@ export default function AdminListingEdit({ id }: Props) {
                     />
                   </div>
                 ))}
+                {/* Agent Photo Upload */}
+                <div className="col-span-2">
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Agent Photo</Label>
+                  <div className="mt-2 flex items-start gap-4">
+                    {getField("agentPhotoUrl") ? (
+                      <div className="relative w-20 h-20 rounded-full overflow-hidden border border-[#D1D9DF] flex-shrink-0">
+                        <img src={getField("agentPhotoUrl")} alt="Agent" className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => setEditForm(f => ({ ...f, agentPhotoUrl: "" }))}
+                          className="absolute top-0 right-0 bg-[#2A384C]/70 text-white rounded-full p-0.5 hover:bg-[#2A384C] transition-colors"
+                        >
+                          <XIcon size={10} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-20 h-20 rounded-full border-2 border-dashed border-[#D1D9DF] flex items-center justify-center bg-[#f5f7f9] flex-shrink-0">
+                        <p className="font-body text-xs text-[#A0B2C2] text-center">No photo</p>
+                      </div>
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <input ref={agentInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoFile("agent")} />
+                      <Button
+                        type="button" variant="outline" size="sm"
+                        className="font-heading text-xs border-[#D1D9DF]"
+                        onClick={() => agentInputRef.current?.click()}
+                        disabled={uploadingPhoto === "agent"}
+                      >
+                        <Upload size={13} className="mr-1.5" />
+                        {uploadingPhoto === "agent" ? "Uploading..." : "Upload Agent Photo"}
+                      </Button>
+                      <Input
+                        value={getField("agentPhotoUrl")}
+                        onChange={e => setEditForm(f => ({ ...f, agentPhotoUrl: e.target.value }))}
+                        placeholder="https://..."
+                        className="font-body border-[#D1D9DF] text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
 
