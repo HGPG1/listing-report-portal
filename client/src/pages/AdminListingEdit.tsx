@@ -1,0 +1,667 @@
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocation } from "wouter";
+import {
+  ArrowLeft, Save, Link, Send, RefreshCw, Plus, Trash2,
+  BarChart2, Home, Users, FileText, Mail, ExternalLink, Copy, Check
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { format } from "date-fns";
+
+interface Props { id: number; }
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="text-[#A0B2C2] hover:text-[#2A384C] transition-colors"
+      title="Copy to clipboard"
+    >
+      {copied ? <Check size={14} className="text-[#A0B2C2]" /> : <Copy size={14} />}
+    </button>
+  );
+}
+
+export default function AdminListingEdit({ id }: Props) {
+  const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
+
+  const { data, isLoading, error } = trpc.listings.getFull.useQuery({ id });
+  const { data: magicLink, refetch: refetchLink } = trpc.magicLinks.getForListing.useQuery({ listingId: id });
+
+  // Mutations
+  const updateMutation = trpc.listings.update.useMutation({
+    onSuccess: () => { toast.success("Listing updated."); utils.listings.getFull.invalidate({ id }); },
+    onError: (e) => toast.error(e.message),
+  });
+  const refreshLinkMutation = trpc.magicLinks.refresh.useMutation({
+    onSuccess: () => { toast.success("New magic link generated (30-day expiry)."); refetchLink(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const sendNowMutation = trpc.email.sendNow.useMutation({
+    onSuccess: (r) => {
+      if (r.success) toast.success("Report event posted to Follow Up Boss!");
+      else toast.error("FUB event failed. Check FUB Contact ID.");
+      utils.email.getLog.invalidate({ listingId: id });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const upsertStatsMutation = trpc.stats.upsertWeekly.useMutation({
+    onSuccess: () => { toast.success("Weekly stats saved."); utils.listings.getFull.invalidate({ id }); },
+    onError: (e) => toast.error(e.message),
+  });
+  const createShowingMutation = trpc.showings.create.useMutation({
+    onSuccess: () => { toast.success("Showing logged."); utils.listings.getFull.invalidate({ id }); },
+    onError: (e) => toast.error(e.message),
+  });
+  const deleteShowingMutation = trpc.showings.delete.useMutation({
+    onSuccess: () => utils.listings.getFull.invalidate({ id }),
+    onError: (e) => toast.error(e.message),
+  });
+  const createOfferMutation = trpc.offers.create.useMutation({
+    onSuccess: () => { toast.success("Offer logged."); utils.listings.getFull.invalidate({ id }); },
+    onError: (e) => toast.error(e.message),
+  });
+  const deleteOfferMutation = trpc.offers.delete.useMutation({
+    onSuccess: () => utils.listings.getFull.invalidate({ id }),
+    onError: (e) => toast.error(e.message),
+  });
+  const createSocialMutation = trpc.stats.createSocial.useMutation({
+    onSuccess: () => { toast.success("Social post added."); utils.listings.getFull.invalidate({ id }); },
+    onError: (e) => toast.error(e.message),
+  });
+  const deleteSocialMutation = trpc.stats.deleteSocial.useMutation({
+    onSuccess: () => utils.listings.getFull.invalidate({ id }),
+    onError: (e) => toast.error(e.message),
+  });
+
+  // Local form state
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const [weeklyForm, setWeeklyForm] = useState({ weekOf: format(new Date(), "yyyy-MM-dd"), zillowViews: "0", realtorViews: "0", redfinViews: "0", websiteViews: "0", totalImpressions: "0", totalVideoViews: "0", totalShowings: "0" });
+  const [showingForm, setShowingForm] = useState({ showingDate: format(new Date(), "yyyy-MM-dd"), buyerAgentName: "", feedbackSummary: "", starRating: "" });
+  const [offerForm, setOfferForm] = useState({ offerDate: format(new Date(), "yyyy-MM-dd"), offerPrice: "", status: "Active", notes: "" });
+  const [socialForm, setSocialForm] = useState({ platform: "Instagram", postUrl: "", impressions: "0", reach: "0", linkClicks: "0", videoViews: "0", postedAt: format(new Date(), "yyyy-MM-dd") });
+
+  const { data: emailLog } = trpc.email.getLog.useQuery({ listingId: id });
+
+  if (isLoading) return (
+    <div className="p-8">
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 w-64 bg-[#D1D9DF] rounded" />
+        <div className="h-64 bg-white rounded-xl border border-[#D1D9DF]" />
+      </div>
+    </div>
+  );
+
+  if (error || !data) return (
+    <div className="p-8">
+      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+        <p className="text-red-700 font-body">Listing not found or access denied.</p>
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/admin")}>Back to Listings</Button>
+      </div>
+    </div>
+  );
+
+  const { listing, weeklyStats, showings, offers, socialPosts } = data;
+
+  const getField = (key: keyof typeof listing) =>
+    editForm[key] !== undefined ? editForm[key] : ((listing as any)[key] ?? "");
+
+  const handleSaveListing = () => {
+    const updates: Record<string, any> = { id };
+    for (const [k, v] of Object.entries(editForm)) {
+      updates[k] = v;
+    }
+    updateMutation.mutate(updates as any);
+  };
+
+  return (
+    <div className="p-8">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate("/admin")} className="text-[#A0B2C2] hover:text-[#2A384C] transition-colors">
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="font-heading text-xl font-semibold text-[#2A384C]">{listing.address}</h1>
+            <p className="font-body text-[#A0B2C2] text-sm">{listing.mlsNumber ? `MLS# ${listing.mlsNumber}` : "No MLS#"} · {listing.status}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {magicLink && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-heading text-xs border-[#D1D9DF]"
+              onClick={() => window.open(magicLink.url, "_blank")}
+            >
+              <ExternalLink size={13} className="mr-1" />
+              Preview Report
+            </Button>
+          )}
+          <Button
+            size="sm"
+            className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading text-xs tracking-wide"
+            onClick={() => sendNowMutation.mutate({ listingId: id })}
+            disabled={sendNowMutation.isPending}
+          >
+            <Send size={13} className="mr-1" />
+            {sendNowMutation.isPending ? "Sending..." : "Send Report Now"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Magic Link Banner */}
+      {magicLink && (
+        <div className={`mb-6 rounded-xl border p-4 flex items-center justify-between ${magicLink.isExpired ? "bg-red-50 border-red-200" : "bg-[#f5f7f9] border-[#D1D9DF]"}`}>
+          <div className="flex items-center gap-3">
+            <Link size={16} className={magicLink.isExpired ? "text-red-400" : "text-[#A0B2C2]"} />
+            <div>
+              <p className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">
+                {magicLink.isExpired ? "⚠ Magic Link Expired" : "Seller Magic Link"}
+              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="font-body text-xs text-[#A0B2C2] truncate max-w-md">{magicLink.url}</p>
+                <CopyButton text={magicLink.url} />
+              </div>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="font-heading text-xs border-[#D1D9DF] flex-shrink-0"
+            onClick={() => refreshLinkMutation.mutate({ listingId: id })}
+            disabled={refreshLinkMutation.isPending}
+          >
+            <RefreshCw size={13} className="mr-1" />
+            Refresh Link
+          </Button>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <Tabs defaultValue="details">
+        <TabsList className="bg-white border border-[#D1D9DF] rounded-xl p-1 mb-6 w-full justify-start gap-1">
+          {[
+            { value: "details", label: "Details", icon: Home },
+            { value: "stats", label: "Weekly Stats", icon: BarChart2 },
+            { value: "showings", label: "Showings", icon: Users },
+            { value: "offers", label: "Offers", icon: FileText },
+            { value: "social", label: "Social Media", icon: BarChart2 },
+            { value: "email", label: "Email Log", icon: Mail },
+          ].map(({ value, label, icon: Icon }) => (
+            <TabsTrigger
+              key={value}
+              value={value}
+              className="font-heading text-xs tracking-wide data-[state=active]:bg-[#2A384C] data-[state=active]:text-white rounded-lg px-4 py-2"
+            >
+              <Icon size={13} className="mr-1.5" />
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {/* ── Details Tab ── */}
+        <TabsContent value="details">
+          <div className="space-y-6">
+            <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+              <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Property</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { key: "address", label: "Address" },
+                  { key: "city", label: "City" },
+                  { key: "state", label: "State" },
+                  { key: "zip", label: "ZIP" },
+                  { key: "mlsNumber", label: "MLS Number" },
+                  { key: "listPrice", label: "List Price" },
+                  { key: "heroPhotoUrl", label: "Hero Photo URL" },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">{label}</Label>
+                    <Input
+                      value={getField(key as any)}
+                      onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                      className="mt-1 font-body border-[#D1D9DF]"
+                    />
+                  </div>
+                ))}
+                <div>
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Status</Label>
+                  <Select value={getField("status")} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger className="mt-1 font-body border-[#D1D9DF]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["Active", "Under Contract", "Sold", "Back on Market", "Withdrawn"].map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+              <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Agent & Seller</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { key: "agentName", label: "Agent Name" },
+                  { key: "agentEmail", label: "Agent Email" },
+                  { key: "agentPhone", label: "Agent Phone" },
+                  { key: "sellerName", label: "Seller Name" },
+                  { key: "sellerEmail", label: "Seller Email" },
+                  { key: "fubContactId", label: "FUB Contact ID" },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">{label}</Label>
+                    <Input
+                      value={getField(key as any)}
+                      onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                      className="mt-1 font-body border-[#D1D9DF]"
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+              <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Weekly Agent Narrative</h3>
+              <Textarea
+                value={getField("weeklyNarrative")}
+                onChange={e => setEditForm(f => ({ ...f, weeklyNarrative: e.target.value }))}
+                placeholder="Write a personal message to the seller about this week's marketing activity..."
+                rows={5}
+                className="font-body border-[#D1D9DF] resize-none"
+              />
+              <p className="text-xs font-body text-[#A0B2C2] mt-1">Appears in the seller report and email as a personal note from you.</p>
+            </section>
+
+            <div className="flex justify-end">
+              <Button
+                onClick={handleSaveListing}
+                disabled={updateMutation.isPending}
+                className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
+              >
+                <Save size={15} className="mr-2" />
+                {updateMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ── Weekly Stats Tab ── */}
+        <TabsContent value="stats">
+          <div className="space-y-6">
+            <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+              <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Enter Weekly Stats</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Week Of</Label>
+                  <Input type="date" value={weeklyForm.weekOf} onChange={e => setWeeklyForm(f => ({ ...f, weekOf: e.target.value }))} className="mt-1 font-body border-[#D1D9DF]" />
+                </div>
+                {[
+                  { key: "zillowViews", label: "Zillow Views" },
+                  { key: "realtorViews", label: "Realtor.com Views" },
+                  { key: "redfinViews", label: "Redfin Views" },
+                  { key: "websiteViews", label: "Website Views" },
+                  { key: "totalImpressions", label: "Total Impressions" },
+                  { key: "totalVideoViews", label: "Total Video Views" },
+                  { key: "totalShowings", label: "Total Showings" },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">{label}</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={(weeklyForm as any)[key]}
+                      onChange={e => setWeeklyForm(f => ({ ...f, [key]: e.target.value }))}
+                      className="mt-1 font-body border-[#D1D9DF]"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button
+                  onClick={() => upsertStatsMutation.mutate({
+                    listingId: id,
+                    weekOf: new Date(weeklyForm.weekOf + "T12:00:00"),
+                    zillowViews: parseInt(weeklyForm.zillowViews) || 0,
+                    realtorViews: parseInt(weeklyForm.realtorViews) || 0,
+                    redfinViews: parseInt(weeklyForm.redfinViews) || 0,
+                    websiteViews: parseInt(weeklyForm.websiteViews) || 0,
+                    totalImpressions: parseInt(weeklyForm.totalImpressions) || 0,
+                    totalVideoViews: parseInt(weeklyForm.totalVideoViews) || 0,
+                    totalShowings: parseInt(weeklyForm.totalShowings) || 0,
+                  })}
+                  disabled={upsertStatsMutation.isPending}
+                  className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
+                >
+                  <Save size={15} className="mr-2" />
+                  {upsertStatsMutation.isPending ? "Saving..." : "Save Stats"}
+                </Button>
+              </div>
+            </section>
+
+            {/* History */}
+            {weeklyStats.length > 0 && (
+              <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">History</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm font-body">
+                    <thead>
+                      <tr className="border-b border-[#D1D9DF]">
+                        {["Week Of", "Zillow", "Realtor", "Redfin", "Website", "Impressions", "Video Views", "Showings"].map(h => (
+                          <th key={h} className="text-left py-2 pr-4 text-xs font-heading text-[#A0B2C2] uppercase tracking-wider">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {weeklyStats.map(s => (
+                        <tr key={s.id} className="border-b border-[#f5f7f9] hover:bg-[#f5f7f9]">
+                          <td className="py-2 pr-4 text-[#2A384C]">{format(new Date(s.weekOf), "MMM d, yyyy")}</td>
+                          <td className="py-2 pr-4 text-[#2A384C]">{(s.zillowViews ?? 0).toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-[#2A384C]">{(s.realtorViews ?? 0).toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-[#2A384C]">{(s.redfinViews ?? 0).toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-[#2A384C]">{(s.websiteViews ?? 0).toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-[#2A384C]">{(s.totalImpressions ?? 0).toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-[#2A384C]">{(s.totalVideoViews ?? 0).toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-[#2A384C]">{(s.totalShowings ?? 0).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ── Showings Tab ── */}
+        <TabsContent value="showings">
+          <div className="space-y-6">
+            <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+              <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Log a Showing</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Showing Date</Label>
+                  <Input type="date" value={showingForm.showingDate} onChange={e => setShowingForm(f => ({ ...f, showingDate: e.target.value }))} className="mt-1 font-body border-[#D1D9DF]" />
+                </div>
+                <div>
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Buyer Agent Name</Label>
+                  <Input value={showingForm.buyerAgentName} onChange={e => setShowingForm(f => ({ ...f, buyerAgentName: e.target.value }))} placeholder="Agent name" className="mt-1 font-body border-[#D1D9DF]" />
+                </div>
+                <div>
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Star Rating (1–5)</Label>
+                  <Input type="number" min="1" max="5" value={showingForm.starRating} onChange={e => setShowingForm(f => ({ ...f, starRating: e.target.value }))} placeholder="4" className="mt-1 font-body border-[#D1D9DF]" />
+                </div>
+                <div className="col-span-2">
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Feedback Summary</Label>
+                  <Textarea value={showingForm.feedbackSummary} onChange={e => setShowingForm(f => ({ ...f, feedbackSummary: e.target.value }))} placeholder="Buyer feedback..." rows={3} className="mt-1 font-body border-[#D1D9DF] resize-none" />
+                </div>
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button
+                  onClick={() => {
+                    createShowingMutation.mutate({
+                      listingId: id,
+                      showingDate: new Date(showingForm.showingDate + "T12:00:00"),
+                      buyerAgentName: showingForm.buyerAgentName || undefined,
+                      feedbackSummary: showingForm.feedbackSummary || undefined,
+                      starRating: showingForm.starRating ? parseInt(showingForm.starRating) : undefined,
+                    });
+                    setShowingForm({ showingDate: format(new Date(), "yyyy-MM-dd"), buyerAgentName: "", feedbackSummary: "", starRating: "" });
+                  }}
+                  disabled={createShowingMutation.isPending}
+                  className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
+                >
+                  <Plus size={15} className="mr-2" />
+                  Log Showing
+                </Button>
+              </div>
+            </section>
+
+            {showings.length > 0 && (
+              <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Showing History ({showings.length})</h3>
+                <div className="space-y-3">
+                  {showings.map(s => (
+                    <div key={s.id} className="flex items-start justify-between p-4 bg-[#f5f7f9] rounded-lg">
+                      <div>
+                        <p className="font-heading text-sm text-[#2A384C]">{format(new Date(s.showingDate), "MMMM d, yyyy")}</p>
+                        {s.buyerAgentName && <p className="font-body text-xs text-[#A0B2C2] mt-0.5">Agent: {s.buyerAgentName}</p>}
+                        {s.starRating && <p className="font-body text-xs text-[#A0B2C2]">Rating: {"★".repeat(s.starRating)}{"☆".repeat(5 - s.starRating)}</p>}
+                        {s.feedbackSummary && <p className="font-body text-xs text-[#2A384C] mt-1 italic">"{s.feedbackSummary}"</p>}
+                      </div>
+                      <button onClick={() => deleteShowingMutation.mutate({ id: s.id })} className="text-[#A0B2C2] hover:text-red-500 transition-colors ml-4">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ── Offers Tab ── */}
+        <TabsContent value="offers">
+          <div className="space-y-6">
+            <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+              <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Log an Offer</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Offer Date</Label>
+                  <Input type="date" value={offerForm.offerDate} onChange={e => setOfferForm(f => ({ ...f, offerDate: e.target.value }))} className="mt-1 font-body border-[#D1D9DF]" />
+                </div>
+                <div>
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Offer Price</Label>
+                  <Input value={offerForm.offerPrice} onChange={e => setOfferForm(f => ({ ...f, offerPrice: e.target.value }))} placeholder="$445,000" className="mt-1 font-body border-[#D1D9DF]" />
+                </div>
+                <div>
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Status</Label>
+                  <Select value={offerForm.status} onValueChange={v => setOfferForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger className="mt-1 font-body border-[#D1D9DF]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["Active", "Countered", "Declined", "Accepted", "Expired"].map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2">
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Notes</Label>
+                  <Textarea value={offerForm.notes} onChange={e => setOfferForm(f => ({ ...f, notes: e.target.value }))} placeholder="Offer notes..." rows={3} className="mt-1 font-body border-[#D1D9DF] resize-none" />
+                </div>
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button
+                  onClick={() => {
+                    createOfferMutation.mutate({
+                      listingId: id,
+                      offerDate: new Date(offerForm.offerDate + "T12:00:00"),
+                      offerPrice: offerForm.offerPrice || undefined,
+                      status: offerForm.status as any,
+                      notes: offerForm.notes || undefined,
+                    });
+                    setOfferForm({ offerDate: format(new Date(), "yyyy-MM-dd"), offerPrice: "", status: "Active", notes: "" });
+                  }}
+                  disabled={createOfferMutation.isPending}
+                  className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
+                >
+                  <Plus size={15} className="mr-2" />
+                  Log Offer
+                </Button>
+              </div>
+            </section>
+
+            {offers.length > 0 && (
+              <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Offer History ({offers.length})</h3>
+                <div className="space-y-3">
+                  {offers.map(o => (
+                    <div key={o.id} className="flex items-start justify-between p-4 bg-[#f5f7f9] rounded-lg">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-heading text-sm text-[#2A384C]">{o.offerPrice ?? "Price undisclosed"}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-heading ${
+                            o.status === "Accepted" ? "bg-[#D1D9DF] text-[#2A384C]" :
+                            o.status === "Declined" ? "bg-[#2A384C] text-[#A0B2C2]" :
+                            o.status === "Countered" ? "bg-[#4A6080] text-white" :
+                            "bg-gray-100 text-gray-600"
+                          }`}>{o.status}</span>
+                        </div>
+                        <p className="font-body text-xs text-[#A0B2C2] mt-0.5">{format(new Date(o.offerDate), "MMMM d, yyyy")}</p>
+                        {o.notes && <p className="font-body text-xs text-[#2A384C] mt-1 italic">"{o.notes}"</p>}
+                      </div>
+                      <button onClick={() => deleteOfferMutation.mutate({ id: o.id })} className="text-[#A0B2C2] hover:text-red-500 transition-colors ml-4">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ── Social Media Tab ── */}
+        <TabsContent value="social">
+          <div className="space-y-6">
+            <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+              <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Add Social Post</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Platform</Label>
+                  <Select value={socialForm.platform} onValueChange={v => setSocialForm(f => ({ ...f, platform: v }))}>
+                    <SelectTrigger className="mt-1 font-body border-[#D1D9DF]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["Instagram", "Facebook", "TikTok", "YouTube", "LinkedIn", "Twitter", "Other"].map(p => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Posted Date</Label>
+                  <Input type="date" value={socialForm.postedAt} onChange={e => setSocialForm(f => ({ ...f, postedAt: e.target.value }))} className="mt-1 font-body border-[#D1D9DF]" />
+                </div>
+                <div className="col-span-2">
+                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Post URL</Label>
+                  <Input value={socialForm.postUrl} onChange={e => setSocialForm(f => ({ ...f, postUrl: e.target.value }))} placeholder="https://instagram.com/p/..." className="mt-1 font-body border-[#D1D9DF]" />
+                </div>
+                {[
+                  { key: "impressions", label: "Impressions" },
+                  { key: "reach", label: "Reach" },
+                  { key: "linkClicks", label: "Link Clicks" },
+                  { key: "videoViews", label: "Video Views" },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">{label}</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={(socialForm as any)[key]}
+                      onChange={e => setSocialForm(f => ({ ...f, [key]: e.target.value }))}
+                      className="mt-1 font-body border-[#D1D9DF]"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button
+                  onClick={() => {
+                    createSocialMutation.mutate({
+                      listingId: id,
+                      platform: socialForm.platform as any,
+                      postUrl: socialForm.postUrl || undefined,
+                      impressions: parseInt(socialForm.impressions) || 0,
+                      reach: parseInt(socialForm.reach) || 0,
+                      linkClicks: parseInt(socialForm.linkClicks) || 0,
+                      videoViews: parseInt(socialForm.videoViews) || 0,
+                      postedAt: new Date(socialForm.postedAt + "T12:00:00"),
+                    });
+                    setSocialForm({ platform: "Instagram", postUrl: "", impressions: "0", reach: "0", linkClicks: "0", videoViews: "0", postedAt: format(new Date(), "yyyy-MM-dd") });
+                  }}
+                  disabled={createSocialMutation.isPending}
+                  className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
+                >
+                  <Plus size={15} className="mr-2" />
+                  Add Post
+                </Button>
+              </div>
+            </section>
+
+            {socialPosts.length > 0 && (
+              <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Social Posts ({socialPosts.length})</h3>
+                <div className="space-y-3">
+                  {socialPosts.map(p => (
+                    <div key={p.id} className="flex items-center justify-between p-4 bg-[#f5f7f9] rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <span className="font-heading text-xs bg-[#2A384C] text-white px-2 py-1 rounded">{p.platform}</span>
+                        <div>
+                          <p className="font-body text-xs text-[#A0B2C2]">{p.postedAt ? format(new Date(p.postedAt), "MMM d, yyyy") : "—"}</p>
+                          <div className="flex gap-3 mt-0.5 text-xs font-body text-[#2A384C]">
+                            <span>{(p.impressions ?? 0).toLocaleString()} impressions</span>
+                            <span>{(p.reach ?? 0).toLocaleString()} reach</span>
+                            {p.videoViews ? <span>{p.videoViews.toLocaleString()} views</span> : null}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {p.postUrl && (
+                          <a href={p.postUrl} target="_blank" rel="noopener noreferrer" className="text-[#A0B2C2] hover:text-[#2A384C]">
+                            <ExternalLink size={14} />
+                          </a>
+                        )}
+                        <button onClick={() => deleteSocialMutation.mutate({ id: p.id })} className="text-[#A0B2C2] hover:text-red-500 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ── Email Log Tab ── */}
+        <TabsContent value="email">
+          <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+            <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Email Delivery Log</h3>
+            {!emailLog || emailLog.length === 0 ? (
+              <p className="font-body text-[#A0B2C2] text-sm text-center py-8">No emails sent yet for this listing.</p>
+            ) : (
+              <div className="space-y-2">
+                {emailLog.map(log => (
+                  <div key={log.id} className="flex items-center justify-between p-3 bg-[#f5f7f9] rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        log.status === "sent" ? "bg-[#A0B2C2]" :
+                        log.status === "failed" ? "bg-red-500" :
+                        "bg-gray-400"
+                      }`} />
+                      <div>
+                        <p className="font-heading text-xs text-[#2A384C] capitalize">{log.status}</p>
+                        {log.fubEventId && <p className="font-body text-xs text-[#A0B2C2]">FUB Event: {log.fubEventId}</p>}
+                        {log.errorMessage && <p className="font-body text-xs text-red-500">{log.errorMessage}</p>}
+                      </div>
+                    </div>
+                    <p className="font-body text-xs text-[#A0B2C2]">{format(new Date(log.sentAt), "MMM d, yyyy h:mm a")}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

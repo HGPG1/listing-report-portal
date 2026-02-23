@@ -42,75 +42,84 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ─── Home Grown Property Group Brand Colors ──────────────────────────────── */
 :root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
+  /* Brand palette */
+  --color-navy:  #2A384C;
+  --color-steel: #A0B2C2;
+  --color-mist:  #D1D9DF;
+  --color-white: #F0F0F0;
+
+  /* Tailwind/shadcn semantic tokens — light admin theme */
+  --radius: 0.5rem;
+  --background: oklch(0.97 0.005 220);
+  --foreground: oklch(0.20 0.04 230);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
+  --card-foreground: oklch(0.20 0.04 230);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
-  --secondary: oklch(0.98 0.001 286.375);
-  --secondary-foreground: oklch(0.4 0.015 65);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
+  --popover-foreground: oklch(0.20 0.04 230);
+  --primary: oklch(0.26 0.055 230);
+  --primary-foreground: oklch(0.97 0.005 220);
+  --secondary: oklch(0.88 0.015 215);
+  --secondary-foreground: oklch(0.26 0.055 230);
+  --muted: oklch(0.93 0.01 215);
+  --muted-foreground: oklch(0.50 0.03 220);
+  --accent: oklch(0.68 0.04 215);
+  --accent-foreground: oklch(0.20 0.04 230);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
+  --border: oklch(0.85 0.015 215);
+  --input: oklch(0.85 0.015 215);
+  --ring: oklch(0.26 0.055 230);
+  --chart-1: oklch(0.26 0.055 230);
+  --chart-2: oklch(0.68 0.04 215);
+  --chart-3: oklch(0.85 0.015 215);
+  --chart-4: oklch(0.55 0.05 220);
+  --chart-5: oklch(0.40 0.05 225);
+  /* Sidebar — dark navy */
+  --sidebar: oklch(0.26 0.055 230);
+  --sidebar-foreground: oklch(0.88 0.015 215);
+  --sidebar-primary: oklch(0.68 0.04 215);
+  --sidebar-primary-foreground: oklch(0.26 0.055 230);
+  --sidebar-accent: oklch(0.32 0.05 230);
+  --sidebar-accent-foreground: oklch(0.88 0.015 215);
+  --sidebar-border: oklch(0.35 0.04 230);
+  --sidebar-ring: oklch(0.68 0.04 215);
 }
 
 .dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
+  --background: oklch(0.20 0.04 230);
+  --foreground: oklch(0.93 0.01 215);
+  --card: oklch(0.26 0.055 230);
+  --card-foreground: oklch(0.93 0.01 215);
+  --popover: oklch(0.26 0.055 230);
+  --popover-foreground: oklch(0.93 0.01 215);
+  --primary: oklch(0.68 0.04 215);
+  --primary-foreground: oklch(0.26 0.055 230);
+  --secondary: oklch(0.32 0.05 230);
+  --secondary-foreground: oklch(0.88 0.015 215);
+  --muted: oklch(0.32 0.05 230);
+  --muted-foreground: oklch(0.68 0.04 215);
+  --accent: oklch(0.32 0.05 230);
+  --accent-foreground: oklch(0.93 0.01 215);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
+  --ring: oklch(0.68 0.04 215);
+  --chart-1: oklch(0.68 0.04 215);
+  --chart-2: oklch(0.85 0.015 215);
+  --chart-3: oklch(0.55 0.05 220);
+  --chart-4: oklch(0.40 0.05 225);
+  --chart-5: oklch(0.26 0.055 230);
+  --sidebar: oklch(0.22 0.05 230);
+  --sidebar-foreground: oklch(0.88 0.015 215);
+  --sidebar-primary: oklch(0.68 0.04 215);
+  --sidebar-primary-foreground: oklch(0.26 0.055 230);
+  --sidebar-accent: oklch(0.32 0.05 230);
+  --sidebar-accent-foreground: oklch(0.88 0.015 215);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  --sidebar-ring: oklch(0.68 0.04 215);
 }
 
 @layer base {
@@ -119,6 +128,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Sansita', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Barlow', 'Trebuchet MS', sans-serif;
+    letter-spacing: 0.02em;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -169,9 +184,54 @@
 
   @media (min-width: 1024px) {
     .container {
-      padding-left: 2rem; /* 32px - desktop padding */
+      padding-left: 2rem;
       padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
+      max-width: 1280px;
     }
   }
+
+  /* ─── Seller Report Dark Theme ──────────────────────────────────────────── */
+  .report-page {
+    background-color: #2A384C;
+    color: #F0F0F0;
+    font-family: 'Sansita', Georgia, serif;
+    min-height: 100vh;
+  }
+  .report-page h1, .report-page h2, .report-page h3, .report-page h4 {
+    font-family: 'Barlow', 'Trebuchet MS', sans-serif;
+    color: #F0F0F0;
+    letter-spacing: 0.05em;
+  }
+  .report-stat-card {
+    background-color: rgba(209, 217, 223, 0.08);
+    border: 1px solid rgba(160, 178, 194, 0.2);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+  }
+  .report-section-divider {
+    border-color: rgba(160, 178, 194, 0.15);
+  }
+
+  /* ─── Scroll Animations ─────────────────────────────────────────────────── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  .animate-fade-in-up-1 { animation: fadeInUp 0.6s 0.1s ease-out both; }
+  .animate-fade-in-up-2 { animation: fadeInUp 0.6s 0.2s ease-out both; }
+  .animate-fade-in-up-3 { animation: fadeInUp 0.6s 0.3s ease-out both; }
+  .animate-fade-in-up-4 { animation: fadeInUp 0.6s 0.4s ease-out both; }
+
+  /* ─── Offer Status Badges ───────────────────────────────────────────────── */
+  .badge-accepted  { background: rgba(160,178,194,0.2); color: #A0B2C2; border: 1px solid rgba(160,178,194,0.4); }
+  .badge-countered { background: rgba(209,217,223,0.15); color: #D1D9DF; border: 1px solid rgba(209,217,223,0.3); }
+  .badge-declined  { background: rgba(42,56,76,0.4); color: #8899aa; border: 1px solid rgba(136,153,170,0.3); }
+  .badge-active-offer { background: rgba(240,240,240,0.1); color: #F0F0F0; border: 1px solid rgba(240,240,240,0.3); }
+
+  /* ─── Font utilities ────────────────────────────────────────────────────── */
+  .font-heading { font-family: 'Barlow', 'Trebuchet MS', sans-serif; }
+  .font-body    { font-family: 'Sansita', Georgia, serif; }
 }
