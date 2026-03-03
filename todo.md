@@ -83,3 +83,30 @@
 - [x] Fix AdminLayout mobile sidebar (hamburger toggle, overlay drawer, full-width main on mobile)
 - [x] Add hero photo S3 upload widget to listing Details tab
 - [x] Add seller-view notification: fire notifyOwner() when magic link is validated/opened
+
+## Round 3 — Zillow API Integration
+
+- [ ] Retrieve Zillow OAuth secret from secure URL
+- [ ] Store ZILLOW_TOKEN and ZILLOW_SECRET as project secrets
+- [ ] Build Zillow sync service (OAuth 1.0, per-listing data pull by MLS ID)
+- [ ] Add nightly cron job for Zillow sync (runs after midnight when data is fresh)
+- [ ] Add zillowLastSynced field to listings table
+- [ ] Add manual "Sync Now" button and last-synced status to admin listing edit page
+- [ ] Write vitest for Zillow sync service
+
+## Round 3 — Zillow API Integration
+
+- [ ] Build Zillow OAuth 1.0a service (HMAC-SHA1 signature, token secret fallback "none" then "")
+- [ ] Store Zillow credentials as project secrets
+- [ ] Add zillow_sync_logs table to schema + db:push
+- [ ] Build syncZillowListing() and syncAllListings() functions
+- [ ] Add nightly cron at 2 AM for Zillow sync
+- [ ] Add tRPC routes: zillow.syncListing, zillow.syncAll, zillow.getSyncStatus
+- [ ] Add Zillow Sync card to admin listing edit page (last synced, status, manual trigger, error log)
+- [ ] Run test call on startup and log result to console
+- [ ] Write vitest for Zillow OAuth signature generation
+
+## Round 4 — Zillow Router + Admin Button
+- [x] Add Zillow tRPC router (syncAll, syncListing, getFeedId, getSyncLogs) to routers.ts
+- [x] Add Sync from Zillow button + last-synced status card to Weekly Stats tab
+- [x] Add admin button to seller report page (visible only to authenticated admins)

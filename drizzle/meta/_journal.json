@@ -15,6 +15,13 @@
       "when": 1771849873883,
       "tag": "0001_nappy_goblin_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1772504794675,
+      "tag": "0002_gifted_mercury",
+      "breakpoints": true
     }
   ]
 }

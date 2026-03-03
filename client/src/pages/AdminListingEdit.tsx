@@ -95,6 +95,13 @@ export default function AdminListingEdit({ id }: Props) {
     },
     onError: (e) => { toast.error(e.message); setUploadingPhoto(null); },
   });
+  const zillowSyncMutation = trpc.zillow.syncListing.useMutation({
+    onSuccess: () => {
+      toast.success("Zillow data synced!");
+      utils.listings.getFull.invalidate({ id });
+    },
+    onError: (e) => toast.error(`Sync failed: ${e.message}`),
+  });
 
   const handlePhotoFile = (type: "hero" | "agent") => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -400,6 +407,32 @@ export default function AdminListingEdit({ id }: Props) {
         {/* ── Weekly Stats Tab ── */}
         <TabsContent value="stats">
           <div className="space-y-6">
+            {/* Zillow Sync Card */}
+            <section className="bg-gradient-to-br from-[#f5f7f9] to-white rounded-xl border border-[#D1D9DF] p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider">Zillow Auto-Sync</h3>
+                  <p className="text-xs text-[#A0B2C2] mt-1">Auto-pull view counts from Zillow Reporting API</p>
+                  {/* Last synced timestamp will appear here once Zillow sync is complete */}
+                </div>
+                <Button
+                  onClick={() => {
+                    if (!data?.listing.mlsNumber) {
+                      toast.error("Please enter an MLS number first.");
+                      return;
+                    }
+                    zillowSyncMutation.mutate({ listingId: id, mlsNumber: data.listing.mlsNumber, feedId: 0 });
+                  }}
+                  disabled={!data?.listing.mlsNumber || zillowSyncMutation.isPending}
+                  className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
+                  title={!data?.listing.mlsNumber ? "Enter MLS number first" : "Sync from Zillow"}
+                >
+                  <RefreshCw size={15} className="mr-2" />
+                  {zillowSyncMutation.isPending ? "Syncing..." : "Sync Now"}
+                </Button>
+              </div>
+            </section>
+
             <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
               <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Enter Weekly Stats</h3>
               <div className="grid grid-cols-2 gap-4">

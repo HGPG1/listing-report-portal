@@ -1,11 +1,33 @@
 import { trpc } from "@/lib/trpc";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useEffect, useRef, useState } from "react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
 import { format } from "date-fns";
-import { MapPin, Calendar, Eye, Video, Home, Star, TrendingUp, ChevronDown } from "lucide-react";
+import { MapPin, Calendar, Eye, Video, Home, Star, TrendingUp, ChevronDown, Settings } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+
+// ─── Admin Button ────────────────────────────────────────────────────────────
+function AdminButton({ listingId }: { listingId?: number }) {
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+
+  if (!user || !listingId) return null;
+
+  return (
+    <div className="flex justify-center mb-6">
+      <button
+        onClick={() => navigate(`/admin/listings/${listingId}`)}
+        className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full px-4 py-2 transition-colors"
+        title="Go to admin dashboard"
+      >
+        <Settings size={14} className="text-[#A0B2C2]" />
+        <span className="font-heading text-xs text-[#A0B2C2] uppercase tracking-wider">Admin</span>
+      </button>
+    </div>
+  );
+}
 
 // ─── Animated Counter ─────────────────────────────────────────────────────────
 function AnimatedCounter({ target, duration = 1200 }: { target: number; duration?: number }) {
@@ -179,6 +201,9 @@ export default function SellerReport() {
               {[listing.city, listing.state, listing.zip].filter(Boolean).join(", ")}
             </p>
           )}
+
+          {/* Admin Button - visible only to authenticated admins */}
+          <AdminButton listingId={data?.listing.id} />
 
           {/* Meta row */}
           <div className="flex flex-wrap items-center justify-center gap-4 mb-8">

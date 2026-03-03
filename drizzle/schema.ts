@@ -180,6 +180,27 @@ export const emailLog = mysqlTable("email_log", {
 export type EmailLogEntry = typeof emailLog.$inferSelect;
 export type InsertEmailLogEntry = typeof emailLog.$inferInsert;
 
+// ─── Zillow Sync Logs ─────────────────────────────────────────────────────
+export const zillowSyncLogs = mysqlTable("zillow_sync_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: int("listingId").references(() => listings.id, { onDelete: "cascade" }),
+  mlsNumber: varchar("mlsNumber", { length: 50 }),
+  feedId: int("feedId"),
+  status: mysqlEnum("status", ["success", "failed", "skipped"]).notNull(),
+  // Data pulled from Zillow
+  zillowViews: int("zillowViews"),
+  zillowImpressions: int("zillowImpressions"),
+  zillowContacts: int("zillowContacts"),
+  // Error details
+  errorMessage: text("errorMessage"),
+  httpStatus: int("httpStatus"),
+  responseBody: text("responseBody"),
+  tokenSecretUsed: varchar("tokenSecretUsed", { length: 20 }), // 'none' or 'empty'
+  syncedAt: timestamp("syncedAt").defaultNow().notNull(),
+});
+export type ZillowSyncLog = typeof zillowSyncLogs.$inferSelect;
+export type InsertZillowSyncLog = typeof zillowSyncLogs.$inferInsert;
+
 // ─── Relations ─────────────────────────────────────────────────────────────
 export const listingsRelations = relations(listings, ({ many, one }) => ({
   magicLinks: many(magicLinks),
@@ -218,4 +239,8 @@ export const offersRelations = relations(offers, ({ one }) => ({
 
 export const emailLogRelations = relations(emailLog, ({ one }) => ({
   listing: one(listings, { fields: [emailLog.listingId], references: [listings.id] }),
+}));
+
+export const zillowSyncLogsRelations = relations(zillowSyncLogs, ({ one }) => ({
+  listing: one(listings, { fields: [zillowSyncLogs.listingId], references: [listings.id] }),
 }));

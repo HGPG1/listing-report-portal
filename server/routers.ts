@@ -37,6 +37,7 @@ import { sendWeeklyReportToFub } from "./fub";
 import { runWeeklyEmailJob } from "./cron";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
+import { syncAllZillowListings, syncZillowListing, discoverFeedId, getZillowSyncLogs } from "./zillow";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
@@ -520,6 +521,35 @@ const analyticsRouter = router({
   }),
 });
 
+// ─── Zillow Router ──────────────────────────────────────────────────────────
+const zillowRouter = router({
+  // Discover feed ID (Canopy MLS)
+  getFeedId: adminProcedure.query(async () => {
+    const { feedId, error, httpStatus, responseBody } = await discoverFeedId();
+    return { feedId, error, httpStatus, responseBody };
+  }),
+
+  // Sync all active listings
+  syncAll: adminProcedure.mutation(async () => {
+    const result = await syncAllZillowListings();
+    return result;
+  }),
+
+  // Sync a single listing by ID
+  syncListing: adminProcedure
+    .input(z.object({ listingId: z.number(), mlsNumber: z.string(), feedId: z.number() }))
+    .mutation(async ({ input }) => {
+      return syncZillowListing(input.listingId, input.mlsNumber, input.feedId);
+    }),
+
+  // Get sync logs for a listing (or all listings)
+  getSyncLogs: adminProcedure
+    .input(z.object({ listingId: z.number().optional(), limit: z.number().default(20) }))
+    .query(async ({ input }) => {
+      return getZillowSyncLogs(input.listingId, input.limit);
+    }),
+});
+
 // ─── App Router ───────────────────────────────────────────────────────────────
 export const appRouter = router({
   system: systemRouter,
@@ -538,6 +568,7 @@ export const appRouter = router({
   offers: offersRouter,
   email: emailRouter,
   analytics: analyticsRouter,
+  zillow: zillowRouter,
 });
 
 export type AppRouter = typeof appRouter;
