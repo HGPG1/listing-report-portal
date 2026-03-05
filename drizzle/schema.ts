@@ -88,9 +88,17 @@ export const weeklyStats = mysqlTable("weekly_stats", {
   totalImpressions: int("totalImpressions").default(0),
   totalVideoViews: int("totalVideoViews").default(0),
   totalShowings: int("totalShowings").default(0),
-  // ListTrac metrics
+  // ListTrac metrics (expanded)
   listtracViews: int("listtracViews").default(0),
   listtracInquiries: int("listtracInquiries").default(0),
+  listtracShares: int("listtracShares").default(0),
+  listtracFavorites: int("listtracFavorites").default(0),
+  listtracVTourViews: int("listtracVTourViews").default(0),
+  // Date range tracking (for custom date range syncs)
+  dateRangeStart: timestamp("dateRangeStart"),
+  dateRangeEnd: timestamp("dateRangeEnd"),
+  // Platform breakdown (JSON string: {"Zillow": 100, "Realtor.com": 50, ...})
+  platformBreakdown: text("platformBreakdown"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

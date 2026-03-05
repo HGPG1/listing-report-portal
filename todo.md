@@ -103,3 +103,15 @@
 - [x] Add vitest for ListTrac credentials and MD5 token generation
 - [x] Set ListTrac environment variables (LISTTRAC_ORG_ID, LISTTRAC_USERNAME, LISTTRAC_PASSWORD)
 - [x] Verify ListTrac startup test call succeeds
+
+## Round 6 — ListTrac Expansion (COMPLETE)
+- [x] Update weekly_stats schema: add listtracShares, listtracFavorites, listtracVTourViews
+- [x] Update weekly_stats schema: add dateRangeStart, dateRangeEnd, platformBreakdown fields
+- [x] Enhance ListTrac service to parse platform-specific metrics from API response
+- [x] Add syncListingByDateRange support via daysBack parameter
+- [x] Add time period selector to Weekly Stats tab (All Time, 7 Day, 14 Day, 30 Day buttons)
+- [x] Create metrics summary cards (Views, Inquiries, Shares, Favorites, VTours)
+- [x] Platform breakdown stored as JSON in database
+- [x] Update nightly cron to pull last 7 days only (lightweight sync)
+- [x] Write 12 comprehensive tests for metric parsing and aggregation
+- [x] All 23 tests passing (including new expanded tests)

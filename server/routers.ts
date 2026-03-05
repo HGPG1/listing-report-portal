@@ -38,7 +38,7 @@ import { runWeeklyEmailJob } from "./cron";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { syncAllZillowListings, syncZillowListing, discoverFeedId, getZillowSyncLogs } from "./zillow";
-import { syncListingMetrics, syncAllListings } from "./listtrac";
+import { syncListingMetrics, syncAllListings, ListTracMetrics } from "./listtrac";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
@@ -572,15 +572,17 @@ export const appRouter = router({
   zillow: zillowRouter,
   listtrac: router({
     syncListing: protectedProcedure
-      .input(z.object({ listingId: z.number() }))
+      .input(z.object({ listingId: z.number(), daysBack: z.number().optional() }))
       .mutation(async ({ input }) => {
-        await syncListingMetrics(input.listingId);
+        await syncListingMetrics(input.listingId, input.daysBack ?? 7);
         return { success: true };
       }),
-    syncAll: protectedProcedure.mutation(async () => {
-      await syncAllListings();
-      return { success: true };
-    }),
+    syncAll: protectedProcedure
+      .input(z.object({ daysBack: z.number().optional() }))
+      .mutation(async ({ input }) => {
+        await syncAllListings(input.daysBack ?? 7);
+        return { success: true };
+      }),
   }),
 });
 

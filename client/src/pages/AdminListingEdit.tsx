@@ -123,6 +123,7 @@ export default function AdminListingEdit({ id }: Props) {
     reader.readAsDataURL(file);
     e.target.value = "";
   };
+  const [timePeriod, setTimePeriod] = useState<7 | 14 | 30 | 365>(7);
   const [weeklyForm, setWeeklyForm] = useState({ weekOf: format(new Date(), "yyyy-MM-dd"), zillowViews: "0", realtorViews: "0", redfinViews: "0", websiteViews: "0", totalImpressions: "0", totalVideoViews: "0", totalShowings: "0" });
   const [showingForm, setShowingForm] = useState({ showingDate: format(new Date(), "yyyy-MM-dd"), buyerAgentName: "", feedbackSummary: "", starRating: "" });
   const [offerForm, setOfferForm] = useState({ offerDate: format(new Date(), "yyyy-MM-dd"), offerPrice: "", status: "Active", notes: "" });
@@ -415,30 +416,73 @@ export default function AdminListingEdit({ id }: Props) {
         {/* ── Weekly Stats Tab ── */}
         <TabsContent value="stats">
           <div className="space-y-6">
-            {/* ListTrac Sync Card */}
+            {/* ListTrac Sync Card with Time Period Selector */}
             <section className="bg-gradient-to-br from-[#f5f7f9] to-white rounded-xl border border-[#D1D9DF] p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider">ListTrac Auto-Sync</h3>
-                  <p className="text-xs text-[#A0B2C2] mt-1">Auto-pull metrics from ListTrac (views, inquiries, shares, favorites)</p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider">ListTrac Auto-Sync</h3>
+                    <p className="text-xs text-[#A0B2C2] mt-1">Pull views, inquiries, shares, favorites, and virtual tour data</p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      if (!data?.listing.mlsNumber) {
+                        toast.error("Please enter an MLS number first.");
+                        return;
+                      }
+                      listTracSyncMutation.mutate({ listingId: id, daysBack: timePeriod === 365 ? 365 : timePeriod });
+                    }}
+                    disabled={!data?.listing.mlsNumber || listTracSyncMutation.isPending}
+                    className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
+                    title={!data?.listing.mlsNumber ? "Enter MLS number first" : "Sync from ListTrac"}
+                  >
+                    <RefreshCw size={15} className="mr-2" />
+                    {listTracSyncMutation.isPending ? "Syncing..." : "Sync Now"}
+                  </Button>
                 </div>
-                <Button
-                  onClick={() => {
-                    if (!data?.listing.mlsNumber) {
-                      toast.error("Please enter an MLS number first.");
-                      return;
-                    }
-                    listTracSyncMutation.mutate({ listingId: id });
-                  }}
-                  disabled={!data?.listing.mlsNumber || listTracSyncMutation.isPending}
-                  className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
-                  title={!data?.listing.mlsNumber ? "Enter MLS number first" : "Sync from ListTrac"}
-                >
-                  <RefreshCw size={15} className="mr-2" />
-                  {listTracSyncMutation.isPending ? "Syncing..." : "Sync Now"}
-                </Button>
+                
+                {/* Time Period Selector */}
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { label: "7 Day", value: 7 },
+                    { label: "14 Day", value: 14 },
+                    { label: "30 Day", value: 30 },
+                    { label: "All Time", value: 365 },
+                  ].map(({ label, value }) => (
+                    <button
+                      key={value}
+                      onClick={() => setTimePeriod(value as 7 | 14 | 30 | 365)}
+                      className={`px-3 py-1 rounded-lg text-xs font-heading uppercase tracking-wider transition-colors ${
+                        timePeriod === value
+                          ? "bg-[#2A384C] text-white"
+                          : "bg-[#E8EDF2] text-[#2A384C] hover:bg-[#D1D9DF]"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </section>
+            
+            {/* Metrics Summary Cards */}
+            {data?.weeklyStats && data.weeklyStats.length > 0 && (
+              <section className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {[
+                  { label: "Views", value: data.weeklyStats[0].listtracViews ?? 0, icon: "👁️" },
+                  { label: "Inquiries", value: data.weeklyStats[0].listtracInquiries ?? 0, icon: "💬" },
+                  { label: "Shares", value: data.weeklyStats[0].listtracShares ?? 0, icon: "📤" },
+                  { label: "Favorites", value: data.weeklyStats[0].listtracFavorites ?? 0, icon: "⭐" },
+                  { label: "VTours", value: data.weeklyStats[0].listtracVTourViews ?? 0, icon: "🎬" },
+                ].map(({ label, value, icon }) => (
+                  <div key={label} className="bg-white rounded-lg border border-[#D1D9DF] p-4 text-center">
+                    <div className="text-2xl mb-2">{icon}</div>
+                    <div className="text-2xl font-heading font-bold text-[#2A384C]">{value.toLocaleString()}</div>
+                    <div className="text-xs text-[#A0B2C2] uppercase tracking-wider mt-1">{label}</div>
+                  </div>
+                ))}
+              </section>
+            )}
 
             <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
               <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Enter Weekly Stats</h3>

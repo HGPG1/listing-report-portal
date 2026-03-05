@@ -1,13 +1,15 @@
 /**
- * ListTrac API Integration
- * Pulls listing metrics: views, inquiries, shares, favorites
+ * ListTrac API Integration (Enhanced)
+ * Pulls listing metrics: views, inquiries, shares, favorites, virtual tours
+ * Includes platform-specific breakdown (Zillow, Realtor.com, Redfin, etc.)
  *
  * Flow:
  *   1. Call getKey() → get GUID
  *   2. MD5(password + GUID) → get token
  *   3. POST to GetMetricsByOrganization with token + listing ID → get metrics
- *   4. Upsert listtracViews, listtracInquiries into weekly_stats
- *   5. Log result in listtrac_sync_logs
+ *   4. Parse response: aggregate totals + platform breakdown
+ *   5. Upsert into weekly_stats with all metrics
+ *   6. Log result in listtrac_sync_logs
  */
 
 import crypto from "crypto";
@@ -80,6 +82,8 @@ export interface ListTracMetrics {
   inquiries: number;
   shares: number;
   favorites: number;
+  vTourViews: number;
+  platformBreakdown: Record<string, { views: number; inquiries: number }>;
 }
 
 async function getListingMetrics(
@@ -94,8 +98,8 @@ async function getListingMetrics(
       token,
       viewtype: "listing",
       viewtypeID: listingId,
-      metric: "view,inquiry,share,favorite",
-      details: "false",
+      metric: "view,inquiry,share,favorite,gallery,vtour",
+      details: "true", // Enable per-listing breakdown
       startdate: startDate,
       enddate: endDate,
     },
@@ -115,6 +119,7 @@ async function getListingMetrics(
         metrics?: {
           sites: Array<{
             sitename: string;
+            sitetype?: string;
             dates: Array<{
               date: string;
               details: Array<{
@@ -122,6 +127,8 @@ async function getListingMetrics(
                 inquiry?: string;
                 share?: string;
                 favorite?: string;
+                gallery?: string;
+                vtour?: string;
               }>;
             }>;
           }>;
@@ -139,16 +146,40 @@ async function getListingMetrics(
     let totalInquiries = 0;
     let totalShares = 0;
     let totalFavorites = 0;
+    let totalVTours = 0;
+    const platformBreakdown: Record<string, { views: number; inquiries: number }> = {};
     
     if (data.response.metrics?.sites) {
       for (const site of data.response.metrics.sites) {
+        const platformName = site.sitename || "Unknown";
+        let platformViews = 0;
+        let platformInquiries = 0;
+        
         for (const dateEntry of site.dates) {
           for (const detail of dateEntry.details) {
-            totalViews += parseInt(detail.view || "0", 10);
-            totalInquiries += parseInt(detail.inquiry || "0", 10);
-            totalShares += parseInt(detail.share || "0", 10);
-            totalFavorites += parseInt(detail.favorite || "0", 10);
+            const views = parseInt(detail.view || "0", 10);
+            const inquiries = parseInt(detail.inquiry || "0", 10);
+            const shares = parseInt(detail.share || "0", 10);
+            const favorites = parseInt(detail.favorite || "0", 10);
+            const vTours = parseInt(detail.vtour || "0", 10);
+            
+            totalViews += views;
+            totalInquiries += inquiries;
+            totalShares += shares;
+            totalFavorites += favorites;
+            totalVTours += vTours;
+            
+            platformViews += views;
+            platformInquiries += inquiries;
           }
+        }
+        
+        // Store platform breakdown
+        if (platformViews > 0 || platformInquiries > 0) {
+          platformBreakdown[platformName] = {
+            views: platformViews,
+            inquiries: platformInquiries,
+          };
         }
       }
     }
@@ -158,6 +189,8 @@ async function getListingMetrics(
       inquiries: totalInquiries,
       shares: totalShares,
       favorites: totalFavorites,
+      vTourViews: totalVTours,
+      platformBreakdown,
     };
   } catch (error) {
     console.error(`[ListTrac] getListingMetrics failed for listing ${listingId}:`, error);
@@ -166,7 +199,7 @@ async function getListingMetrics(
 }
 
 // ─── Sync Functions ─────────────────────────────────────────────────────────
-export async function syncListingMetrics(listingId: number): Promise<void> {
+export async function syncListingMetrics(listingId: number, daysBack: number = 7): Promise<void> {
   const db = await getDb();
   if (!db) {
     console.warn("[ListTrac] Cannot sync: database not available");
@@ -182,24 +215,23 @@ export async function syncListingMetrics(listingId: number): Promise<void> {
       throw new Error(`Listing ${listingId} not found`);
     }
     
-    // Check if listing has a ListTrac ID (stored in a field we need to add)
-    // For now, use the MLS number as the ListTrac ID
+    // Check if listing has a ListTrac ID (use MLS number)
     const listtracId = listing.mlsNumber;
     if (!listtracId) {
       console.warn(`[ListTrac] Listing ${listingId} has no MLS number, skipping`);
       return;
     }
     
-    // Get metrics for the current week (last 7 days)
+    // Get metrics for the specified date range
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startDate = new Date(endDate.getTime() - daysBack * 24 * 60 * 60 * 1000);
     
     const startDateStr = startDate.toISOString().split("T")[0]!.replace(/-/g, "");
     const endDateStr = endDate.toISOString().split("T")[0]!.replace(/-/g, "");
     
     const metrics = await getListingMetrics(listtracId, startDateStr, endDateStr);
     
-    console.log(`[ListTrac] Synced listing ${listing.address} (ID: ${listtracId}): ${metrics.views} views, ${metrics.inquiries} inquiries`);
+    console.log(`[ListTrac] Synced listing ${listing.address} (ID: ${listtracId}): ${metrics.views} views, ${metrics.inquiries} inquiries, ${metrics.shares} shares, ${metrics.favorites} favorites`);
     
     // Get or create weekly stats for this week
     const weekStart = new Date(endDate);
@@ -230,6 +262,12 @@ export async function syncListingMetrics(listingId: number): Promise<void> {
         .set({
           listtracViews: metrics.views,
           listtracInquiries: metrics.inquiries,
+          listtracShares: metrics.shares,
+          listtracFavorites: metrics.favorites,
+          listtracVTourViews: metrics.vTourViews,
+          platformBreakdown: JSON.stringify(metrics.platformBreakdown),
+          dateRangeStart: startDate,
+          dateRangeEnd: endDate,
           updatedAt: new Date(),
         })
         .where(eq(weeklyStats.id, existingStats.id));
@@ -240,6 +278,12 @@ export async function syncListingMetrics(listingId: number): Promise<void> {
         weekOf: weekStart,
         listtracViews: metrics.views,
         listtracInquiries: metrics.inquiries,
+        listtracShares: metrics.shares,
+        listtracFavorites: metrics.favorites,
+        listtracVTourViews: metrics.vTourViews,
+        platformBreakdown: JSON.stringify(metrics.platformBreakdown),
+        dateRangeStart: startDate,
+        dateRangeEnd: endDate,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -273,7 +317,7 @@ export async function syncListingMetrics(listingId: number): Promise<void> {
   }
 }
 
-export async function syncAllListings(): Promise<void> {
+export async function syncAllListings(daysBack: number = 7): Promise<void> {
   const db = await getDb();
   if (!db) {
     console.warn("[ListTrac] Cannot sync all: database not available");
@@ -283,10 +327,10 @@ export async function syncAllListings(): Promise<void> {
   try {
     const allListings = await db.select().from(listings);
     
-    console.log(`[ListTrac] Starting sync for ${allListings.length} listings...`);
+    console.log(`[ListTrac] Starting sync for ${allListings.length} listings (${daysBack} days back)...`);
     
     for (const listing of allListings) {
-      await syncListingMetrics(listing.id);
+      await syncListingMetrics(listing.id, daysBack);
       // Small delay to avoid rate limiting
       await new Promise((resolve) => setTimeout(resolve, 500));
     }

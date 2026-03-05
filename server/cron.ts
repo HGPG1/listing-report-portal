@@ -138,16 +138,16 @@ export function startCronJob(): void {
 
   console.log(`[Cron] Weekly email job scheduled: ${CRON_SCHEDULE} (${process.env.CRON_TIMEZONE ?? "America/New_York"})`);
 
-  // Start ListTrac nightly sync cron (2 AM daily)
+  // Start ListTrac nightly sync cron (2 AM daily) — lightweight 7-day sync only
   if (!listTracCronJob && nodeCron.validate(LISTTRAC_CRON_SCHEDULE)) {
     listTracCronJob = nodeCron.schedule(LISTTRAC_CRON_SCHEDULE, async () => {
-      console.log("[ListTrac Cron] Starting nightly sync...");
-      await syncAllListings();
+      console.log("[ListTrac Cron] Starting nightly sync (7 days)...");
+      await syncAllListings(7); // Lightweight: only pull last 7 days
       console.log("[ListTrac Cron] Nightly sync complete");
     }, {
       timezone: process.env.CRON_TIMEZONE ?? "America/New_York",
     });
-    console.log(`[ListTrac Cron] Nightly sync scheduled: ${LISTTRAC_CRON_SCHEDULE} (America/New_York)`);
+    console.log(`[ListTrac Cron] Nightly sync scheduled: ${LISTTRAC_CRON_SCHEDULE} (America/New_York) — pulling last 7 days`);
   }
 
   // Run ListTrac test call 3 seconds after startup to confirm credentials
