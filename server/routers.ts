@@ -38,7 +38,7 @@ import { runWeeklyEmailJob } from "./cron";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { syncAllZillowListings, syncZillowListing, discoverFeedId, getZillowSyncLogs } from "./zillow";
-import { syncListingMetrics, syncAllListings, ListTracMetrics } from "./listtrac";
+import { syncAllListingsFromMLS, ListingMetricsData } from "./listtrac";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
@@ -72,11 +72,12 @@ const listingsRouter = router({
       return listing;
     }),
 
-  getFull: adminProcedure
+    getFull: adminProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const data = await getFullListingData(input.id);
       if (!data) throw new TRPCError({ code: "NOT_FOUND", message: "Listing not found" });
+      console.log(`[Router] getFull returning ${data.weeklyStats.length} weekly stats for listing ${input.id}`);
       return data;
     }),
 
@@ -571,24 +572,18 @@ export const appRouter = router({
   analytics: analyticsRouter,
   zillow: zillowRouter,
   listtrac: router({
-    syncListing: protectedProcedure
-      .input(z.object({ listingId: z.number(), daysBack: z.number().optional() }))
+    syncAll: protectedProcedure
+      .input(z.object({ daysBack: z.number().optional() }))
       .mutation(async ({ input }) => {
         try {
-          console.log(`[Router] ListTrac sync mutation called for listing ${input.listingId}`);
-          await syncListingMetrics(input.listingId, input.daysBack ?? 7);
-          console.log(`[Router] ListTrac sync completed successfully`);
-          return { success: true };
+          console.log(`[Router] ListTrac bulk sync mutation called`);
+          const result = await syncAllListingsFromMLS(input.daysBack ?? 7);
+          console.log(`[Router] ListTrac sync completed: ${result.listingsUpdated} listings updated`);
+          return result;
         } catch (error) {
           console.error(`[Router] ListTrac sync failed:`, error);
           throw error;
         }
-      }),
-    syncAll: protectedProcedure
-      .input(z.object({ daysBack: z.number().optional() }))
-      .mutation(async ({ input }) => {
-        await syncAllListings(input.daysBack ?? 7);
-        return { success: true };
       }),
   }),
 });

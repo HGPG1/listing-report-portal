@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, listingId, listtracViews, listtracInquiries, weekOf, dateRangeStart, dateRangeEnd, createdAt FROM weekly_stats WHERE listingId = 1 ORDER BY createdAt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT id, listingId, listtracViews, listtracInquiries, weekOf, dateRangeStart, dateRangeEnd, createdAt FROM weekly_stats WHERE listingId = 1 ORDER BY createdAt DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "30001",
+      "listingId": "1",
+      "listtracViews": "0",
+      "listtracInquiries": "0",
+      "weekOf": "2026-03-01 05:00:00",
+      "dateRangeStart": "2026-02-26 20:01:52",
+      "dateRangeEnd": "2026-03-05 20:01:52",
+      "createdAt": "2026-03-05 20:01:56"
+    },
+    {
+      "id": "1",
+      "listingId": "1",
+      "listtracViews": "0",
+      "listtracInquiries": "0",
+      "weekOf": "2026-03-01 00:00:00",
+      "dateRangeStart": "2026-02-26 20:16:26",
+      "dateRangeEnd": "2026-03-05 20:16:26",
+      "createdAt": "2026-03-05 18:19:22"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tlistingId\tlisttracViews\tlisttracInquiries\tweekOf\tdateRangeStart\tdateRangeEnd\tcreatedAt\n30001\t1\t0\t0\t2026-03-01 05:00:00\t2026-02-26 20:01:52\t2026-03-05 20:01:52\t2026-03-05 20:01:56\n1\t1\t0\t0\t2026-03-01 00:00:00\t2026-02-26 20:16:26\t2026-03-05 20:16:26\t2026-03-05 18:19:22\n",
+  "stderr": "",
+  "execution_time_ms": 371
+}

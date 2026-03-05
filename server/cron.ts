@@ -11,7 +11,7 @@
 import * as nodeCron from "node-cron";
 import { getActiveListingsForCron, getActiveMagicLinkForListing, getFullListingData, logEmail } from "./db";
 import { sendWeeklyReportToFub } from "./fub";
-import { syncAllListings, runListTracTestCall } from "./listtrac";
+import { syncAllListingsFromMLS, runListTracTestCall } from "./listtrac";
 
 // Default: Monday at 8:00 AM. Override with CRON_SCHEDULE env var.
 // Format: seconds minutes hours day-of-month month day-of-week
@@ -142,7 +142,7 @@ export function startCronJob(): void {
   if (!listTracCronJob && nodeCron.validate(LISTTRAC_CRON_SCHEDULE)) {
     listTracCronJob = nodeCron.schedule(LISTTRAC_CRON_SCHEDULE, async () => {
       console.log("[ListTrac Cron] Starting nightly sync (7 days)...");
-      await syncAllListings(7); // Lightweight: only pull last 7 days
+      await syncAllListingsFromMLS(7); // Lightweight: only pull last 7 days
       console.log("[ListTrac Cron] Nightly sync complete");
     }, {
       timezone: process.env.CRON_TIMEZONE ?? "America/New_York",

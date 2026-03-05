@@ -103,11 +103,17 @@ export default function AdminListingEdit({ id }: Props) {
     },
     onError: (e) => toast.error(`Sync failed: ${e.message}`),
   });
-  const listTracSyncMutation = trpc.listtrac.syncListing.useMutation({
-    onSuccess: () => {
-      console.log("[UI] ListTrac sync succeeded");
+  const listTracSyncMutation = trpc.listtrac.syncAll.useMutation({
+    onMutate: (vars) => {
+      console.log("[UI] ListTrac mutation starting:", vars);
+    },
+    onSuccess: async (data) => {
+      console.log("[UI] ListTrac sync succeeded", data);
       toast.success("ListTrac data synced!");
-      utils.listings.getFull.invalidate({ id });
+      // Invalidate the cache first to force a fresh fetch
+      await utils.listings.getFull.invalidate({ id });
+      // Then refetch to get the new data
+      await utils.listings.getFull.refetch({ id });
     },
     onError: (e) => {
       console.error("[UI] ListTrac sync failed:", e);
@@ -436,7 +442,7 @@ export default function AdminListingEdit({ id }: Props) {
                         return;
                       }
                       console.log("[UI] Calling ListTrac sync mutation");
-                      listTracSyncMutation.mutate({ listingId: id, daysBack: timePeriod === 365 ? 365 : timePeriod });
+                      listTracSyncMutation.mutate({ daysBack: timePeriod === 365 ? 365 : timePeriod });
                     }}
                     disabled={!data?.listing.mlsNumber || listTracSyncMutation.isPending}
                     className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
@@ -484,20 +490,20 @@ export default function AdminListingEdit({ id }: Props) {
                   )}
                 </div>
                 <section className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {[
-                  { label: "Views", value: data.weeklyStats[0].listtracViews ?? 0, icon: "👁️" },
-                  { label: "Inquiries", value: data.weeklyStats[0].listtracInquiries ?? 0, icon: "💬" },
-                  { label: "Shares", value: data.weeklyStats[0].listtracShares ?? 0, icon: "📤" },
-                  { label: "Favorites", value: data.weeklyStats[0].listtracFavorites ?? 0, icon: "⭐" },
-                  { label: "VTours", value: data.weeklyStats[0].listtracVTourViews ?? 0, icon: "🎬" },
-                ].map(({ label, value, icon }) => (
-                  <div key={label} className="bg-white rounded-lg border border-[#D1D9DF] p-4 text-center">
-                    <div className="text-2xl mb-2">{icon}</div>
-                    <div className="text-2xl font-heading font-bold text-[#2A384C]">{value.toLocaleString()}</div>
-                    <div className="text-xs text-[#A0B2C2] uppercase tracking-wider mt-1">{label}</div>
-                  </div>
-                ))}
-              </section>
+                  {[
+                    { label: "Views", value: data.weeklyStats[0].listtracViews ?? 0, icon: "👁️" },
+                    { label: "Inquiries", value: data.weeklyStats[0].listtracInquiries ?? 0, icon: "💬" },
+                    { label: "Shares", value: data.weeklyStats[0].listtracShares ?? 0, icon: "📤" },
+                    { label: "Favorites", value: data.weeklyStats[0].listtracFavorites ?? 0, icon: "⭐" },
+                    { label: "VTours", value: data.weeklyStats[0].listtracVTourViews ?? 0, icon: "🎬" },
+                  ].map(({ label, value, icon }) => (
+                    <div key={label} className="bg-white rounded-lg border border-[#D1D9DF] p-4 text-center">
+                      <div className="text-2xl mb-2">{icon}</div>
+                      <div className="text-2xl font-heading font-bold text-[#2A384C]">{value.toLocaleString()}</div>
+                      <div className="text-xs text-[#A0B2C2] uppercase tracking-wider mt-1">{label}</div>
+                    </div>
+                  ))}
+                </section>
               </>
             )}
             {data?.weeklyStats && data.weeklyStats.length === 0 && (
