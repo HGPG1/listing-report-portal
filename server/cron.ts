@@ -11,17 +11,17 @@
 import * as nodeCron from "node-cron";
 import { getActiveListingsForCron, getActiveMagicLinkForListing, getFullListingData, logEmail } from "./db";
 import { sendWeeklyReportToFub } from "./fub";
-import { syncAllZillowListings, runZillowTestCall } from "./zillow";
+import { syncAllListings, runListTracTestCall } from "./listtrac";
 
 // Default: Monday at 8:00 AM. Override with CRON_SCHEDULE env var.
 // Format: seconds minutes hours day-of-month month day-of-week
 const CRON_SCHEDULE = process.env.CRON_SCHEDULE ?? "0 0 8 * * 1";
-// Zillow nightly sync: 2 AM every day (data is ~2 days behind)
-const ZILLOW_CRON_SCHEDULE = process.env.ZILLOW_CRON_SCHEDULE ?? "0 0 2 * * *";
+// ListTrac nightly sync: 2 AM every day
+const LISTTRAC_CRON_SCHEDULE = process.env.LISTTRAC_CRON_SCHEDULE ?? "0 0 2 * * *";
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
 let cronJob: nodeCron.ScheduledTask | null = null;
-let zillowCronJob: nodeCron.ScheduledTask | null = null;
+let listTracCronJob: nodeCron.ScheduledTask | null = null;
 
 export async function runWeeklyEmailJob(): Promise<{ processed: number; errors: number }> {
   console.log("[Cron] Starting weekly email job...");
@@ -138,28 +138,28 @@ export function startCronJob(): void {
 
   console.log(`[Cron] Weekly email job scheduled: ${CRON_SCHEDULE} (${process.env.CRON_TIMEZONE ?? "America/New_York"})`);
 
-  // Start Zillow nightly sync cron (2 AM daily)
-  if (!zillowCronJob && nodeCron.validate(ZILLOW_CRON_SCHEDULE)) {
-    zillowCronJob = nodeCron.schedule(ZILLOW_CRON_SCHEDULE, async () => {
-      console.log("[Zillow Cron] Starting nightly sync...");
-      const result = await syncAllZillowListings();
-      console.log(`[Zillow Cron] Done. Processed: ${result.processed}, Skipped: ${result.skipped}, Errors: ${result.errors}`);
+  // Start ListTrac nightly sync cron (2 AM daily)
+  if (!listTracCronJob && nodeCron.validate(LISTTRAC_CRON_SCHEDULE)) {
+    listTracCronJob = nodeCron.schedule(LISTTRAC_CRON_SCHEDULE, async () => {
+      console.log("[ListTrac Cron] Starting nightly sync...");
+      await syncAllListings();
+      console.log("[ListTrac Cron] Nightly sync complete");
     }, {
       timezone: process.env.CRON_TIMEZONE ?? "America/New_York",
     });
-    console.log(`[Zillow Cron] Nightly sync scheduled: ${ZILLOW_CRON_SCHEDULE} (America/New_York)`);
+    console.log(`[ListTrac Cron] Nightly sync scheduled: ${LISTTRAC_CRON_SCHEDULE} (America/New_York)`);
   }
 
-  // Run Zillow test call 3 seconds after startup to confirm credentials
+  // Run ListTrac test call 3 seconds after startup to confirm credentials
   setTimeout(() => {
-    runZillowTestCall().catch(console.error);
+    runListTracTestCall().catch(console.error);
   }, 3000);
 }
 
 export function stopCronJob(): void {
   cronJob?.stop();
   cronJob = null;
-  zillowCronJob?.stop();
-  zillowCronJob = null;
+  listTracCronJob?.stop();
+  listTracCronJob = null;
   console.log("[Cron] All jobs stopped");
 }

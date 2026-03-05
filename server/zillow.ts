@@ -24,12 +24,12 @@ import { eq, and, gte, lte } from "drizzle-orm";
 
 // ─── Credentials ─────────────────────────────────────────────────────────────
 const ZILLOW_BASE_URL = "https://reporting-api.zillowgroup.com";
-const CONSUMER_KEY = process.env.ZILLOW_CONSUMER_KEY ?? "homegrown";
-const CONSUMER_SECRET = process.env.ZILLOW_CONSUMER_SECRET ?? "none";
+const CONSUMER_KEY = process.env.ZILLOW_CONSUMER_KEY ?? "";
+const CONSUMER_SECRET = process.env.ZILLOW_CONSUMER_SECRET ?? "";
 const TOKEN = process.env.ZILLOW_TOKEN ?? "829BA1C84595469AA396BA00DFDB728F";
-// Token secret: try "none" first, then "" as fallback
-const TOKEN_SECRET_PRIMARY = process.env.ZILLOW_TOKEN_SECRET ?? "none";
-const TOKEN_SECRET_FALLBACK = "";
+// Token secret: try "" first, then "none" as fallback
+const TOKEN_SECRET_PRIMARY = process.env.ZILLOW_TOKEN_SECRET ?? "";
+const TOKEN_SECRET_FALLBACK = "none"; // Fallback to try 'none'
 
 // Cached feed ID (discovered on first call)
 let cachedFeedId: number | null = null;
@@ -62,16 +62,16 @@ function buildOAuthHeader(
     oauth_version: "1.0",
   };
 
-  // Combine oauth params + query params for signature base
+  // Parse URL to get base URL without query string
+  const urlObj = new URL(url);
+  const baseUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+
+  // Combine oauth params + query params for signature base (all params, sorted)
   const allParams: Record<string, string> = { ...queryParams, ...oauthParams };
   const sortedParams = Object.keys(allParams)
     .sort()
     .map((k) => `${percentEncode(k)}=${percentEncode(allParams[k])}`)
     .join("&");
-
-  // Parse URL to get base URL without query string
-  const urlObj = new URL(url);
-  const baseUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
 
   const signatureBase = [
     method.toUpperCase(),
@@ -79,11 +79,22 @@ function buildOAuthHeader(
     percentEncode(sortedParams),
   ].join("&");
 
+  // OAuth 1.0a signing key: consumer_secret&token_secret (both percent-encoded)
   const signingKey = `${percentEncode(CONSUMER_SECRET)}&${percentEncode(tokenSecret)}`;
   const signature = crypto
     .createHmac("sha1", signingKey)
     .update(signatureBase)
     .digest("base64");
+
+  console.log(`[Zillow OAuth Debug]`);
+  console.log(`  Method: ${method}`);
+  console.log(`  Base URL: ${baseUrl}`);
+  console.log(`  Query Params: ${JSON.stringify(queryParams)}`);
+  console.log(`  Timestamp: ${timestamp}`);
+  console.log(`  Token Secret: "${tokenSecret}"`);
+  console.log(`  Signing Key: ${signingKey}`);
+  console.log(`  Signature Base: ${signatureBase}`);
+  console.log(`  Generated Signature: ${signature}`);
 
   oauthParams["oauth_signature"] = signature;
 
@@ -94,6 +105,8 @@ function buildOAuthHeader(
       .map((k) => `${percentEncode(k)}="${percentEncode(oauthParams[k])}"`)
       .join(", ");
 
+  console.log(`[Zillow OAuth Header] ${headerValue.substring(0, 100)}...`);
+
   return headerValue;
 }
 
@@ -103,10 +116,12 @@ async function zillowGet(
   queryParams: Record<string, string> = {},
   tokenSecret: string
 ): Promise<{ ok: boolean; status: number; body: string; data: any }> {
+  const baseUrl = `${ZILLOW_BASE_URL}${path}`;
   const qs = new URLSearchParams(queryParams).toString();
-  const fullUrl = `${ZILLOW_BASE_URL}${path}${qs ? "?" + qs : ""}`;
+  const fullUrl = `${baseUrl}${qs ? "?" + qs : ""}`;
 
-  const authHeader = buildOAuthHeader("GET", fullUrl, queryParams, tokenSecret);
+  // Build OAuth header with the base URL (without query string)
+  const authHeader = buildOAuthHeader("GET", baseUrl, queryParams, tokenSecret);
 
   let status = 0;
   let body = "";

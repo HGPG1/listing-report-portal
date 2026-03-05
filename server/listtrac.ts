@@ -1,0 +1,315 @@
+/**
+ * ListTrac API Integration
+ * Pulls listing metrics: views, inquiries, shares, favorites
+ *
+ * Flow:
+ *   1. Call getKey() → get GUID
+ *   2. MD5(password + GUID) → get token
+ *   3. POST to GetMetricsByOrganization with token + listing ID → get metrics
+ *   4. Upsert listtracViews, listtracInquiries into weekly_stats
+ *   5. Log result in listtrac_sync_logs
+ */
+
+import crypto from "crypto";
+import { getDb } from "./db";
+import {
+  listings,
+  weeklyStats,
+  listracSyncLogs,
+  InsertListracSyncLog,
+} from "../drizzle/schema";
+import { eq, and, gte, lte } from "drizzle-orm";
+
+
+// ─── Credentials ─────────────────────────────────────────────────────────────
+const LISTTRAC_BASE_URL = "https://b2b.listtrac.com/api";
+const ORG_ID = process.env.LISTTRAC_ORG_ID ?? "canopy";
+const USERNAME = process.env.LISTTRAC_USERNAME ?? "44890";
+const PASSWORD = process.env.LISTTRAC_PASSWORD ?? "HomeGrown2026!";
+
+// Cached token (valid for the session)
+let cachedToken: string | null = null;
+let cachedTokenTime: number = 0;
+const TOKEN_CACHE_TTL = 3600000; // 1 hour in milliseconds
+
+// ─── Token Generation ───────────────────────────────────────────────────────
+async function getKey(): Promise<string> {
+  const url = `${LISTTRAC_BASE_URL}/getkey?orgID=${ORG_ID}&username=${USERNAME}`;
+  
+  try {
+    const response = await fetch(url);
+    const data = await response.json() as { key: string; returncode: number; message: string };
+    
+    if (data.returncode !== 0) {
+      throw new Error(`ListTrac getKey failed: ${data.message}`);
+    }
+    
+    return data.key;
+  } catch (error) {
+    console.error("[ListTrac] getKey() failed:", error);
+    throw error;
+  }
+}
+
+function generateToken(key: string): string {
+  const combined = PASSWORD + key;
+  return crypto.createHash("md5").update(combined).digest("hex");
+}
+
+async function getOrRefreshToken(): Promise<string> {
+  const now = Date.now();
+  
+  // Return cached token if still valid
+  if (cachedToken && now - cachedTokenTime < TOKEN_CACHE_TTL) {
+    return cachedToken;
+  }
+  
+  // Generate new token
+  const key = await getKey();
+  cachedToken = generateToken(key);
+  cachedTokenTime = now;
+  
+  console.log(`[ListTrac] Generated new token (expires in ${TOKEN_CACHE_TTL / 1000 / 60} minutes)`);
+  
+  return cachedToken;
+}
+
+// ─── Metrics Pulling ────────────────────────────────────────────────────────
+export interface ListTracMetrics {
+  views: number;
+  inquiries: number;
+  shares: number;
+  favorites: number;
+}
+
+async function getListingMetrics(
+  listingId: string,
+  startDate: string,
+  endDate: string
+): Promise<ListTracMetrics> {
+  const token = await getOrRefreshToken();
+  
+  const payload = {
+    request: {
+      token,
+      viewtype: "listing",
+      viewtypeID: listingId,
+      metric: "view,inquiry,share,favorite",
+      details: "false",
+      startdate: startDate,
+      enddate: endDate,
+    },
+  };
+  
+  try {
+    const response = await fetch(`${LISTTRAC_BASE_URL}/getmetricsbyorganization`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    
+    const data = await response.json() as {
+      response?: {
+        returncode: number;
+        message: string;
+        metrics?: {
+          sites: Array<{
+            sitename: string;
+            dates: Array<{
+              date: string;
+              details: Array<{
+                view?: string;
+                inquiry?: string;
+                share?: string;
+                favorite?: string;
+              }>;
+            }>;
+          }>;
+        };
+      };
+    };
+    
+    if (!data.response || data.response.returncode !== 0) {
+      const errorMsg = data.response?.message || "Unknown error";
+      throw new Error(`ListTrac API error: ${errorMsg}`);
+    }
+    
+    // Aggregate metrics across all sites and dates
+    let totalViews = 0;
+    let totalInquiries = 0;
+    let totalShares = 0;
+    let totalFavorites = 0;
+    
+    if (data.response.metrics?.sites) {
+      for (const site of data.response.metrics.sites) {
+        for (const dateEntry of site.dates) {
+          for (const detail of dateEntry.details) {
+            totalViews += parseInt(detail.view || "0", 10);
+            totalInquiries += parseInt(detail.inquiry || "0", 10);
+            totalShares += parseInt(detail.share || "0", 10);
+            totalFavorites += parseInt(detail.favorite || "0", 10);
+          }
+        }
+      }
+    }
+    
+    return {
+      views: totalViews,
+      inquiries: totalInquiries,
+      shares: totalShares,
+      favorites: totalFavorites,
+    };
+  } catch (error) {
+    console.error(`[ListTrac] getListingMetrics failed for listing ${listingId}:`, error);
+    throw error;
+  }
+}
+
+// ─── Sync Functions ─────────────────────────────────────────────────────────
+export async function syncListingMetrics(listingId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[ListTrac] Cannot sync: database not available");
+    return;
+  }
+  
+  try {
+    // Get listing
+    const listingRows = await db.select().from(listings).where(eq(listings.id, listingId)).limit(1);
+    const listing = listingRows[0];
+    
+    if (!listing) {
+      throw new Error(`Listing ${listingId} not found`);
+    }
+    
+    // Check if listing has a ListTrac ID (stored in a field we need to add)
+    // For now, use the MLS number as the ListTrac ID
+    const listtracId = listing.mlsNumber;
+    if (!listtracId) {
+      console.warn(`[ListTrac] Listing ${listingId} has no MLS number, skipping`);
+      return;
+    }
+    
+    // Get metrics for the current week (last 7 days)
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    const startDateStr = startDate.toISOString().split("T")[0]!.replace(/-/g, "");
+    const endDateStr = endDate.toISOString().split("T")[0]!.replace(/-/g, "");
+    
+    const metrics = await getListingMetrics(listtracId, startDateStr, endDateStr);
+    
+    console.log(`[ListTrac] Synced listing ${listing.address} (ID: ${listtracId}): ${metrics.views} views, ${metrics.inquiries} inquiries`);
+    
+    // Get or create weekly stats for this week
+    const weekStart = new Date(endDate);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+    weekStart.setHours(0, 0, 0, 0);
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    
+    const existingStatsRows = await db
+      .select()
+      .from(weeklyStats)
+      .where(
+        and(
+          eq(weeklyStats.listingId, listingId),
+          gte(weeklyStats.weekOf, weekStart),
+          lte(weeklyStats.weekOf, weekEnd)
+        )
+      )
+      .limit(1);
+    const existingStats = existingStatsRows[0];
+    
+    if (existingStats) {
+      // Update existing stats
+      await db
+        .update(weeklyStats)
+        .set({
+          listtracViews: metrics.views,
+          listtracInquiries: metrics.inquiries,
+          updatedAt: new Date(),
+        })
+        .where(eq(weeklyStats.id, existingStats.id));
+    } else {
+      // Create new stats
+      await db.insert(weeklyStats).values({
+        listingId: listingId,
+        weekOf: weekStart,
+        listtracViews: metrics.views,
+        listtracInquiries: metrics.inquiries,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    }
+    
+    // Log sync
+    const logEntry: InsertListracSyncLog = {
+      listingId,
+      status: "success",
+      viewsCount: metrics.views,
+      inquiriesCount: metrics.inquiries,
+      sharesCount: metrics.shares,
+      favoritesCount: metrics.favorites,
+      syncedAt: new Date(),
+    };
+    
+    await db.insert(listracSyncLogs).values(logEntry);
+  } catch (error) {
+    console.error(`[ListTrac] syncListingMetrics failed for listing ${listingId}:`, error);
+    
+    // Log error
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const logEntry: InsertListracSyncLog = {
+      listingId,
+      status: "error",
+      errorMessage: errorMsg,
+      syncedAt: new Date(),
+    };
+    
+    await db.insert(listracSyncLogs).values(logEntry);
+  }
+}
+
+export async function syncAllListings(): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[ListTrac] Cannot sync all: database not available");
+    return;
+  }
+  
+  try {
+    const allListings = await db.select().from(listings);
+    
+    console.log(`[ListTrac] Starting sync for ${allListings.length} listings...`);
+    
+    for (const listing of allListings) {
+      await syncListingMetrics(listing.id);
+      // Small delay to avoid rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    
+    console.log("[ListTrac] Sync complete");
+  } catch (error) {
+    console.error("[ListTrac] syncAllListings failed:", error);
+  }
+}
+
+// ─── Startup Test ───────────────────────────────────────────────────────────
+export async function runListTracTestCall(): Promise<void> {
+  try {
+    console.log("[ListTrac] Running startup test call...");
+    
+    const key = await getKey();
+    console.log(`[ListTrac] ✓ getKey() succeeded: ${key}`);
+    
+    const token = generateToken(key);
+    console.log(`[ListTrac] ✓ Token generated: ${token.substring(0, 8)}...`);
+    
+    console.log("[ListTrac] ✓ Test call successful");
+  } catch (error) {
+    console.error("[ListTrac] ✗ Test call failed:", error);
+  }
+}

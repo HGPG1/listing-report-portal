@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,6 +102,13 @@ export default function AdminListingEdit({ id }: Props) {
       utils.listings.getFull.invalidate({ id });
     },
     onError: (e) => toast.error(`Sync failed: ${e.message}`),
+  });
+  const listTracSyncMutation = trpc.listtrac.syncListing.useMutation({
+    onSuccess: () => {
+      toast.success("ListTrac data synced!");
+      utils.listings.getFull.invalidate({ id });
+    },
+    onError: (e) => toast.error(`ListTrac sync failed: ${e.message}`),
   });
 
   const handlePhotoFile = (type: "hero" | "agent") => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -407,13 +415,12 @@ export default function AdminListingEdit({ id }: Props) {
         {/* ── Weekly Stats Tab ── */}
         <TabsContent value="stats">
           <div className="space-y-6">
-            {/* Zillow Sync Card */}
+            {/* ListTrac Sync Card */}
             <section className="bg-gradient-to-br from-[#f5f7f9] to-white rounded-xl border border-[#D1D9DF] p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider">Zillow Auto-Sync</h3>
-                  <p className="text-xs text-[#A0B2C2] mt-1">Auto-pull view counts from Zillow Reporting API</p>
-                  {/* Last synced timestamp will appear here once Zillow sync is complete */}
+                  <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider">ListTrac Auto-Sync</h3>
+                  <p className="text-xs text-[#A0B2C2] mt-1">Auto-pull metrics from ListTrac (views, inquiries, shares, favorites)</p>
                 </div>
                 <Button
                   onClick={() => {
@@ -421,14 +428,14 @@ export default function AdminListingEdit({ id }: Props) {
                       toast.error("Please enter an MLS number first.");
                       return;
                     }
-                    zillowSyncMutation.mutate({ listingId: id, mlsNumber: data.listing.mlsNumber, feedId: 0 });
+                    listTracSyncMutation.mutate({ listingId: id });
                   }}
-                  disabled={!data?.listing.mlsNumber || zillowSyncMutation.isPending}
+                  disabled={!data?.listing.mlsNumber || listTracSyncMutation.isPending}
                   className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
-                  title={!data?.listing.mlsNumber ? "Enter MLS number first" : "Sync from Zillow"}
+                  title={!data?.listing.mlsNumber ? "Enter MLS number first" : "Sync from ListTrac"}
                 >
                   <RefreshCw size={15} className="mr-2" />
-                  {zillowSyncMutation.isPending ? "Syncing..." : "Sync Now"}
+                  {listTracSyncMutation.isPending ? "Syncing..." : "Sync Now"}
                 </Button>
               </div>
             </section>

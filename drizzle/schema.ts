@@ -88,12 +88,31 @@ export const weeklyStats = mysqlTable("weekly_stats", {
   totalImpressions: int("totalImpressions").default(0),
   totalVideoViews: int("totalVideoViews").default(0),
   totalShowings: int("totalShowings").default(0),
+  // ListTrac metrics
+  listtracViews: int("listtracViews").default(0),
+  listtracInquiries: int("listtracInquiries").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type WeeklyStat = typeof weeklyStats.$inferSelect;
 export type InsertWeeklyStat = typeof weeklyStats.$inferInsert;
+
+// ─── ListTrac Sync Logs ────────────────────────────────────────────────────
+export const listracSyncLogs = mysqlTable("listtrac_sync_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: int("listingId").notNull().references(() => listings.id, { onDelete: "cascade" }),
+  status: mysqlEnum("status", ["success", "error"]).notNull(),
+  viewsCount: int("viewsCount"),
+  inquiriesCount: int("inquiriesCount"),
+  sharesCount: int("sharesCount"),
+  favoritesCount: int("favoritesCount"),
+  errorMessage: text("errorMessage"),
+  syncedAt: timestamp("syncedAt").notNull(),
+});
+
+export type ListracSyncLog = typeof listracSyncLogs.$inferSelect;
+export type InsertListracSyncLog = typeof listracSyncLogs.$inferInsert;
 
 // ─── Social Posts ──────────────────────────────────────────────────────────
 export const socialPosts = mysqlTable("social_posts", {
