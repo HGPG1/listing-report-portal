@@ -105,10 +105,14 @@ export default function AdminListingEdit({ id }: Props) {
   });
   const listTracSyncMutation = trpc.listtrac.syncListing.useMutation({
     onSuccess: () => {
+      console.log("[UI] ListTrac sync succeeded");
       toast.success("ListTrac data synced!");
       utils.listings.getFull.invalidate({ id });
     },
-    onError: (e) => toast.error(`ListTrac sync failed: ${e.message}`),
+    onError: (e) => {
+      console.error("[UI] ListTrac sync failed:", e);
+      toast.error(`ListTrac sync failed: ${e.message}`);
+    },
   });
 
   const handlePhotoFile = (type: "hero" | "agent") => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -426,10 +430,12 @@ export default function AdminListingEdit({ id }: Props) {
                   </div>
                   <Button
                     onClick={() => {
+                      console.log("[UI] Sync button clicked", { id, timePeriod, mlsNumber: data?.listing.mlsNumber });
                       if (!data?.listing.mlsNumber) {
                         toast.error("Please enter an MLS number first.");
                         return;
                       }
+                      console.log("[UI] Calling ListTrac sync mutation");
                       listTracSyncMutation.mutate({ listingId: id, daysBack: timePeriod === 365 ? 365 : timePeriod });
                     }}
                     disabled={!data?.listing.mlsNumber || listTracSyncMutation.isPending}
@@ -467,7 +473,17 @@ export default function AdminListingEdit({ id }: Props) {
             
             {/* Metrics Summary Cards */}
             {data?.weeklyStats && data.weeklyStats.length > 0 && (
-              <section className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <>
+                <div className="text-xs text-[#A0B2C2] mb-3">
+                  {data.weeklyStats[0].dateRangeStart && data.weeklyStats[0].dateRangeEnd ? (
+                    <span>
+                      Data from {new Date(data.weeklyStats[0].dateRangeStart).toLocaleDateString()} to {new Date(data.weeklyStats[0].dateRangeEnd).toLocaleDateString()}
+                    </span>
+                  ) : (
+                    <span>Week of {new Date(data.weeklyStats[0].weekOf).toLocaleDateString()}</span>
+                  )}
+                </div>
+                <section className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 {[
                   { label: "Views", value: data.weeklyStats[0].listtracViews ?? 0, icon: "👁️" },
                   { label: "Inquiries", value: data.weeklyStats[0].listtracInquiries ?? 0, icon: "💬" },
@@ -482,6 +498,12 @@ export default function AdminListingEdit({ id }: Props) {
                   </div>
                 ))}
               </section>
+              </>
+            )}
+            {data?.weeklyStats && data.weeklyStats.length === 0 && (
+              <div className="bg-[#f5f7f9] rounded-xl border border-[#D1D9DF] p-6 text-center">
+                <p className="text-sm text-[#A0B2C2]">No ListTrac data synced yet. Click "Sync Now" above to pull metrics.</p>
+              </div>
             )}
 
             <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">

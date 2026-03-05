@@ -106,11 +106,18 @@ async function getListingMetrics(
   };
   
   try {
+    console.log(`[ListTrac] Calling API with payload:`, { viewtype: payload.request.viewtype, viewtypeID: payload.request.viewtypeID, startdate: payload.request.startdate, enddate: payload.request.enddate });
     const response = await fetch(`${LISTTRAC_BASE_URL}/getmetricsbyorganization`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    
+    console.log(`[ListTrac] API response status:`, response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ListTrac API HTTP error ${response.status}: ${errorText}`);
+    }
     
     const data = await response.json() as {
       response?: {
@@ -136,6 +143,7 @@ async function getListingMetrics(
       };
     };
     
+    console.log(`[ListTrac] API response data:`, { returncode: data.response?.returncode, message: data.response?.message, sitesCount: data.response?.metrics?.sites?.length });
     if (!data.response || data.response.returncode !== 0) {
       const errorMsg = data.response?.message || "Unknown error";
       throw new Error(`ListTrac API error: ${errorMsg}`);
@@ -200,13 +208,17 @@ async function getListingMetrics(
 
 // ─── Sync Functions ─────────────────────────────────────────────────────────
 export async function syncListingMetrics(listingId: number, daysBack: number = 7): Promise<void> {
+  console.log(`[ListTrac] syncListingMetrics called for listing ${listingId}, daysBack=${daysBack}`);
   const db = await getDb();
   if (!db) {
-    console.warn("[ListTrac] Cannot sync: database not available");
-    return;
+    const err = "Database not available";
+    console.error(`[ListTrac] ${err}`);
+    throw new Error(err);
   }
+  console.log(`[ListTrac] Database connected`);
   
   try {
+    console.log(`[ListTrac] Fetching listing ${listingId}...`);
     // Get listing
     const listingRows = await db.select().from(listings).where(eq(listings.id, listingId)).limit(1);
     const listing = listingRows[0];
@@ -215,12 +227,14 @@ export async function syncListingMetrics(listingId: number, daysBack: number = 7
       throw new Error(`Listing ${listingId} not found`);
     }
     
+    console.log(`[ListTrac] Found listing: ${listing.address}`);
     // Check if listing has a ListTrac ID (use MLS number)
     const listtracId = listing.mlsNumber;
     if (!listtracId) {
       console.warn(`[ListTrac] Listing ${listingId} has no MLS number, skipping`);
       return;
     }
+    console.log(`[ListTrac] Using MLS number as ListTrac ID: ${listtracId}`);
     
     // Get metrics for the specified date range
     const endDate = new Date();
@@ -229,9 +243,12 @@ export async function syncListingMetrics(listingId: number, daysBack: number = 7
     const startDateStr = startDate.toISOString().split("T")[0]!.replace(/-/g, "");
     const endDateStr = endDate.toISOString().split("T")[0]!.replace(/-/g, "");
     
+    console.log(`[ListTrac] Fetching metrics from ${startDateStr} to ${endDateStr}...`);
     const metrics = await getListingMetrics(listtracId, startDateStr, endDateStr);
+    console.log(`[ListTrac] Got metrics:`, metrics);
     
     console.log(`[ListTrac] Synced listing ${listing.address} (ID: ${listtracId}): ${metrics.views} views, ${metrics.inquiries} inquiries, ${metrics.shares} shares, ${metrics.favorites} favorites`);
+    console.log(`[ListTrac] Saving to database...`);
     
     // Get or create weekly stats for this week
     const weekStart = new Date(endDate);
@@ -256,6 +273,7 @@ export async function syncListingMetrics(listingId: number, daysBack: number = 7
     const existingStats = existingStatsRows[0];
     
     if (existingStats) {
+      console.log(`[ListTrac] Updating existing weekly stats record ${existingStats.id}`);
       // Update existing stats
       await db
         .update(weeklyStats)
@@ -271,7 +289,9 @@ export async function syncListingMetrics(listingId: number, daysBack: number = 7
           updatedAt: new Date(),
         })
         .where(eq(weeklyStats.id, existingStats.id));
+      console.log(`[ListTrac] ✓ Updated weekly stats`);
     } else {
+      console.log(`[ListTrac] Creating new weekly stats record`);
       // Create new stats
       await db.insert(weeklyStats).values({
         listingId: listingId,
@@ -286,7 +306,8 @@ export async function syncListingMetrics(listingId: number, daysBack: number = 7
         dateRangeEnd: endDate,
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      });
+      console.log(`[ListTrac] ✓ Created new weekly stats`);
     }
     
     // Log sync
@@ -314,6 +335,9 @@ export async function syncListingMetrics(listingId: number, daysBack: number = 7
     };
     
     await db.insert(listracSyncLogs).values(logEntry);
+    
+    // Re-throw the error so tRPC mutation can surface it to the UI
+    throw error;
   }
 }
 

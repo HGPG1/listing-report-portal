@@ -115,3 +115,14 @@
 - [x] Update nightly cron to pull last 7 days only (lightweight sync)
 - [x] Write 12 comprehensive tests for metric parsing and aggregation
 - [x] All 23 tests passing (including new expanded tests)
+
+
+## Debugging — ListTrac Sync Issues (COMPLETE)
+- [x] Debug: Sync button - API working, returns 0 metrics for test listing
+- [x] Debug: Database updates working - records created with zero values
+- [x] Debug: UI now shows "No data synced yet" message when empty
+- [x] Fix: Error handling now throws instead of swallowing errors
+- [x] Fix: Added date range display to metrics cards
+- [x] Verify: ListTrac API returns 19 sites with correct structure
+- [x] Verify: Weekly stats query returns correct data
+- [x] All 23 tests passing

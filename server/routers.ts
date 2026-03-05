@@ -574,8 +574,15 @@ export const appRouter = router({
     syncListing: protectedProcedure
       .input(z.object({ listingId: z.number(), daysBack: z.number().optional() }))
       .mutation(async ({ input }) => {
-        await syncListingMetrics(input.listingId, input.daysBack ?? 7);
-        return { success: true };
+        try {
+          console.log(`[Router] ListTrac sync mutation called for listing ${input.listingId}`);
+          await syncListingMetrics(input.listingId, input.daysBack ?? 7);
+          console.log(`[Router] ListTrac sync completed successfully`);
+          return { success: true };
+        } catch (error) {
+          console.error(`[Router] ListTrac sync failed:`, error);
+          throw error;
+        }
       }),
     syncAll: protectedProcedure
       .input(z.object({ daysBack: z.number().optional() }))

@@ -1,0 +1,9 @@
+{
+  "query": "SELECT id, listingId, listtracViews, listtracInquiries, listtracShares, listtracFavorites, listtracVTourViews, dateRangeStart, dateRangeEnd FROM weekly_stats WHERE listtracViews > 0 OR listtracInquiries > 0 OR listtracShares > 0 OR listtracFavorites > 0 OR listtracVTourViews > 0 LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT id, listingId, listtracViews, listtracInquiries, listtracShares, listtracFavorites, listtracVTourViews, dateRangeStart, dateRangeEnd FROM weekly_stats WHERE listtracViews > 0 OR listtracInquiries > 0 OR listtracShares > 0 OR listtracFavorites > 0 OR listtracVTourViews > 0 LIMIT 10;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 393
+}
