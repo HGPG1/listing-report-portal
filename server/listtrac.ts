@@ -139,11 +139,13 @@ async function getListingMetrics(
     
     if (!data.response || data.response.returncode !== 0) {
       const errorMsg = data.response?.message || "Unknown error";
-      console.error("[ListTrac] Full API response:", JSON.stringify(data, null, 2));
+      console.error("[ListTrac] ERROR - Full API response:", JSON.stringify(data, null, 2));
       throw new Error(`ListTrac API error: ${errorMsg}`);
     }
     
-    console.log("[ListTrac] Full API response:", JSON.stringify(data, null, 2));
+    // Log the complete response structure for debugging
+    console.log(`[ListTrac] SUCCESS - Full response structure:`);
+    console.log(JSON.stringify(data.response, null, 2));
     
     let totalViews = 0;
     let totalInquiries = 0;
@@ -151,6 +153,9 @@ async function getListingMetrics(
     let totalFavorites = 0;
     let totalVTours = 0;
     const platformBreakdown: Record<string, { views: number; inquiries: number }> = {};
+    
+    console.log(`[ListTrac] Metrics object exists: ${!!data.response.metrics}`);
+    console.log(`[ListTrac] Sites array exists: ${!!data.response.metrics?.sites}`);
     
     if (data.response.metrics?.sites) {
       for (const site of data.response.metrics.sites) {
@@ -202,6 +207,7 @@ async function getListingMetrics(
         }
         
         if (platformViews > 0 || platformInquiries > 0) {
+          console.log(`[ListTrac] Platform ${platformName}: ${platformViews} views, ${platformInquiries} inquiries`);
           platformBreakdown[platformName] = {
             views: platformViews,
             inquiries: platformInquiries,
@@ -210,7 +216,7 @@ async function getListingMetrics(
       }
     }
     
-    console.log(`[ListTrac] Got metrics for MLS ${mlsNumber}: ${totalViews} views, ${totalInquiries} inquiries`);
+    console.log(`[ListTrac] FINAL METRICS for ${mlsNumber}: views=${totalViews}, inquiries=${totalInquiries}, shares=${totalShares}, favorites=${totalFavorites}, vtours=${totalVTours}`);
     
     return {
       views: totalViews,

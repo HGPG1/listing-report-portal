@@ -1,0 +1,15 @@
+{
+  "query": "SELECT COUNT(*) as total_records, listingId, COUNT(DISTINCT weekOf) as weeks FROM weekly_stats GROUP BY listingId;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT COUNT(*) as total_records, listingId, COUNT(DISTINCT weekOf) as weeks FROM weekly_stats GROUP BY listingId;",
+  "rows": [
+    {
+      "total_records": "2",
+      "listingId": "1",
+      "weeks": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_records\tlistingId\tweeks\n2\t1\t2\n",
+  "stderr": "",
+  "execution_time_ms": 347
+}

@@ -156,3 +156,9 @@
 - [x] Create archive system for off-market listings
 - [x] Add UI to show active vs archived listings with sync controls
 - [x] Test dynamic listing discovery and archiving workflow
+
+
+## Critical Bugs - Round 11
+- [ ] Auto-sync shows +0 added when it should be discovering listings
+- [ ] Sync metrics returns zeros for inquiries/shares/favorites (only views updates)
+- [ ] ListTrac API response parsing is broken - not extracting all metrics correctly

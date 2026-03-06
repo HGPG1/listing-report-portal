@@ -1,0 +1,9 @@
+{
+  "query": "\nINSERT INTO listings (mlsNumber, address, city, status, createdAt, updatedAt) VALUES\n('4342358', '7416 Hartsfield Drive', 'Lancaster', 'Active', NOW(), NOW()),\n('4336731', '13002 Butters Way #44', 'Charlotte', 'Active', NOW(), NOW()),\n('4222460', '00 Stratton Farm Road', 'Huntersville', 'Active', NOW(), NOW()),\n('4346944', '1131 Sikes Mill Road', 'Monroe', 'Active', NOW(), NOW()),\n('4341869', '11230 Mallard Crossing Drive', 'Charlotte', 'Active', NOW(), NOW()),\n('4311448', '11058 Argosy Drive', 'Lancaster', 'Active', NOW(), NOW()),\n('4304524', '181 Jeter Street', 'Chester', 'Active', NOW(), NOW())\nON DUPLICATE KEY UPDATE updatedAt = NOW();\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute \nINSERT INTO listings (mlsNumber, address, city, status, createdAt, updatedAt) VALUES\n('4342358', '7416 Hartsfield Drive', 'Lancaster', 'Active', NOW(), NOW()),\n('4336731', '13002 Butters Way #44', 'Charlotte', 'Active', NOW(), NOW()),\n('4222460', '00 Stratton Farm Road', 'Huntersville', 'Active', NOW(), NOW()),\n('4346944', '1131 Sikes Mill Road', 'Monroe', 'Active', NOW(), NOW()),\n('4341869', '11230 Mallard Crossing Drive', 'Charlotte', 'Active', NOW(), NOW()),\n('4311448', '11058 Argosy Drive', 'Lancaster', 'Active', NOW(), NOW()),\n('4304524', '181 Jeter Street', 'Chester', 'Active', NOW(), NOW())\nON DUPLICATE KEY UPDATE updatedAt = NOW();\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 355
+}
