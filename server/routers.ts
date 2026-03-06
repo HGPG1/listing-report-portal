@@ -39,7 +39,7 @@ import { runWeeklyEmailJob } from "./cron";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { syncAllZillowListings, syncZillowListing, discoverFeedId, getZillowSyncLogs } from "./zillow";
-import { syncAllListingsFromMLS, ListingMetricsData } from "./listtrac";
+import { syncAllListingsFromMLS, syncSingleListing, ListingMetricsData } from "./listtrac";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
@@ -587,6 +587,19 @@ export const appRouter = router({
           return result;
         } catch (error) {
           console.error(`[Router] ListTrac sync failed:`, error);
+          throw error;
+        }
+      }),
+    syncListing: protectedProcedure
+      .input(z.object({ listingId: z.number(), daysBack: z.number().optional() }))
+      .mutation(async ({ input }) => {
+        try {
+          console.log(`[Router] ListTrac single listing sync mutation called for listing ${input.listingId}`);
+          const result = await syncSingleListing(input.listingId, input.daysBack ?? 7);
+          console.log(`[Router] ListTrac single listing sync completed for ${input.listingId}`);
+          return result;
+        } catch (error) {
+          console.error(`[Router] ListTrac single listing sync failed:`, error);
           throw error;
         }
       }),

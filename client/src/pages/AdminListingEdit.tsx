@@ -103,7 +103,7 @@ export default function AdminListingEdit({ id }: Props) {
     },
     onError: (e) => toast.error(`Sync failed: ${e.message}`),
   });
-  const listTracSyncMutation = trpc.listtrac.syncAll.useMutation({
+  const listTracSyncMutation = trpc.listtrac.syncListing.useMutation({
     onMutate: (vars) => {
       console.log("[UI] ListTrac mutation starting:", vars);
     },
@@ -441,8 +441,8 @@ export default function AdminListingEdit({ id }: Props) {
                         toast.error("Please enter an MLS number first.");
                         return;
                       }
-                      console.log("[UI] Calling ListTrac sync mutation");
-                      listTracSyncMutation.mutate({ daysBack: timePeriod === 365 ? 365 : timePeriod });
+                      console.log("[UI] Calling ListTrac sync mutation for listing", id);
+                      listTracSyncMutation.mutate({ listingId: id, daysBack: timePeriod === 365 ? 365 : timePeriod });
                     }}
                     disabled={!data?.listing.mlsNumber || listTracSyncMutation.isPending}
                     className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"

@@ -203,6 +203,100 @@ async function getListingMetrics(
 }
 
 // ─── Sync Functions ─────────────────────────────────────────────────────────
+export async function syncSingleListing(listingId: number, daysBack: number = 7): Promise<ListingMetricsData> {
+  console.log(`[ListTrac] Starting sync for single listing ${listingId} (last ${daysBack} days)`);
+  
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+  
+  try {
+    const token = await getOrRefreshToken();
+    
+    // Get the specific listing
+    const listing = await db.select().from(listings).where(eq(listings.id, listingId)).limit(1);
+    if (!listing || listing.length === 0) {
+      throw new Error(`Listing ${listingId} not found`);
+    }
+    
+    if (!listing[0].mlsNumber) {
+      throw new Error(`Listing ${listingId} has no MLS number`);
+    }
+    
+    // Calculate date range
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - daysBack * 24 * 60 * 60 * 1000);
+    
+    const startDateStr = startDate.toISOString().split("T")[0]!.replace(/-/g, "");
+    const endDateStr = endDate.toISOString().split("T")[0]!.replace(/-/g, "");
+    
+    console.log(`[ListTrac] Fetching metrics from ${startDateStr} to ${endDateStr}`);
+    
+    // Get metrics for this listing
+    const metrics = await getListingMetrics(token, listing[0].mlsNumber, startDateStr, endDateStr);
+    
+    // Get week start date
+    const weekOf = new Date();
+    weekOf.setDate(weekOf.getDate() - weekOf.getDay()); // Start of week (Sunday)
+    weekOf.setHours(0, 0, 0, 0);
+    
+    // Check if record exists for this week
+    const existing = await db
+      .select()
+      .from(weeklyStats)
+      .where(
+        and(
+          eq(weeklyStats.listingId, listingId),
+          eq(weeklyStats.weekOf, weekOf)
+        )
+      )
+      .limit(1);
+    
+    if (existing.length > 0) {
+      // Update existing record
+      await db
+        .update(weeklyStats)
+        .set({
+          listtracViews: metrics.views,
+          listtracInquiries: metrics.inquiries,
+          listtracShares: metrics.shares,
+          listtracFavorites: metrics.favorites,
+          listtracVTourViews: metrics.vTourViews,
+          platformBreakdown: JSON.stringify(metrics.platformBreakdown),
+          dateRangeStart: startDate,
+          dateRangeEnd: endDate,
+          updatedAt: new Date(),
+        })
+        .where(eq(weeklyStats.id, existing[0].id));
+      console.log(`[ListTrac] Updated existing stats for listing ${listingId}`);
+    } else {
+      // Insert new record
+      await db.insert(weeklyStats).values({
+        listingId: listingId,
+        weekOf: weekOf,
+        listtracViews: metrics.views,
+        listtracInquiries: metrics.inquiries,
+        listtracShares: metrics.shares,
+        listtracFavorites: metrics.favorites,
+        listtracVTourViews: metrics.vTourViews,
+        platformBreakdown: JSON.stringify(metrics.platformBreakdown),
+        dateRangeStart: startDate,
+        dateRangeEnd: endDate,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      console.log(`[ListTrac] Created new stats for listing ${listingId}`);
+    }
+    
+    console.log(`[ListTrac] Single listing sync completed for ${listingId}`);
+    return metrics;
+  } catch (error) {
+    console.error(`[ListTrac] Single listing sync failed:`, error);
+    throw error;
+  }
+}
+
 export async function syncAllListingsFromMLS(daysBack: number = 7): Promise<{ success: boolean; listingsUpdated: number }> {
   console.log(`[ListTrac] Starting bulk sync for MLS ${USERNAME} (last ${daysBack} days)`);
   

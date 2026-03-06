@@ -17,6 +17,19 @@ export default function AdminListings() {
   const [, navigate] = useLocation();
   const { data: listings, isLoading, error } = trpc.listings.list.useQuery();
   const { data: allStats } = trpc.listings.getAllWithStats.useQuery();
+  const syncAllMutation = trpc.listtrac.syncAll.useMutation();
+  const utils = trpc.useUtils();
+
+  const handleSyncAll = async () => {
+    try {
+      await syncAllMutation.mutateAsync({ daysBack: 7 });
+      toast.success("All listings synced from ListTrac");
+      // Refetch all stats after sync
+      await utils.listings.getAllWithStats.refetch();
+    } catch (error) {
+      toast.error("Sync failed: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  };
 
   if (isLoading) {
     return (
@@ -50,13 +63,22 @@ export default function AdminListings() {
             {listings?.length ?? 0} listing{listings?.length !== 1 ? "s" : ""} total
           </p>
         </div>
-        <Button
-          className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
-          onClick={() => navigate("/admin/listings/new")}
-        >
-          <PlusCircle size={16} className="mr-2" />
-          New Listing
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            className="bg-[#4A6080] hover:bg-[#3A5070] text-white font-heading tracking-wide"
+            onClick={handleSyncAll}
+            disabled={syncAllMutation.isPending}
+          >
+            {syncAllMutation.isPending ? "Syncing..." : "Sync All from ListTrac"}
+          </Button>
+          <Button
+            className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
+            onClick={() => navigate("/admin/listings/new")}
+          >
+            <PlusCircle size={16} className="mr-2" />
+            New Listing
+          </Button>
+        </div>
       </div>
 
       {/* Empty state */}

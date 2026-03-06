@@ -143,3 +143,8 @@
 - [x] Add getAllWithStats tRPC query to fetch all listings with latest weekly stats
 - [x] Update AdminListings to display views, inquiries, shares, favorites, vtours for each listing
 - [x] Test and verify metrics display correctly
+
+
+## Critical Bugs - Round 9
+- [x] Add force sync button to Active Listings page
+- [x] Fix Weekly Stats sync button - data not updating after sync completes
