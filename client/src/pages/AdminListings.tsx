@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
-import { PlusCircle, MapPin, Calendar, Eye } from "lucide-react";
+import { PlusCircle, MapPin, Calendar, Eye, MessageCircle, Share2, Star, Film } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -16,6 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AdminListings() {
   const [, navigate] = useLocation();
   const { data: listings, isLoading, error } = trpc.listings.list.useQuery();
+  const { data: allStats } = trpc.listings.getAllWithStats.useQuery();
 
   if (isLoading) {
     return (
@@ -97,7 +98,7 @@ export default function AdminListings() {
                   )}
                 </div>
 
-                <div>
+                <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="font-heading text-base font-semibold text-[#2A384C]">{listing.address}</h2>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-heading ${STATUS_COLORS[listing.status] ?? "bg-gray-100 text-gray-600"}`}>
@@ -113,6 +114,37 @@ export default function AdminListings() {
                     <div className="flex items-center gap-1 mt-1 text-xs font-body text-[#A0B2C2]">
                       <Calendar size={12} />
                       Listed {new Date(listing.listDate).toLocaleDateString()}
+                    </div>
+                  )}
+                  
+                  {/* ListTrac Metrics */}
+                  {allStats && allStats.find(s => s.id === listing.id)?.weeklyStats?.[0] && (
+                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[#D1D9DF]">
+                      <div className="flex items-center gap-1 text-xs font-body">
+                        <Eye size={14} className="text-[#2A384C]" />
+                        <span className="text-[#2A384C] font-semibold">{allStats.find(s => s.id === listing.id)?.weeklyStats?.[0]?.listtracViews ?? 0}</span>
+                        <span className="text-[#A0B2C2]">views</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-body">
+                        <MessageCircle size={14} className="text-[#2A384C]" />
+                        <span className="text-[#2A384C] font-semibold">{allStats.find(s => s.id === listing.id)?.weeklyStats?.[0]?.listtracInquiries ?? 0}</span>
+                        <span className="text-[#A0B2C2]">inquiries</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-body">
+                        <Share2 size={14} className="text-[#2A384C]" />
+                        <span className="text-[#2A384C] font-semibold">{allStats.find(s => s.id === listing.id)?.weeklyStats?.[0]?.listtracShares ?? 0}</span>
+                        <span className="text-[#A0B2C2]">shares</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-body">
+                        <Star size={14} className="text-[#2A384C]" />
+                        <span className="text-[#2A384C] font-semibold">{allStats.find(s => s.id === listing.id)?.weeklyStats?.[0]?.listtracFavorites ?? 0}</span>
+                        <span className="text-[#A0B2C2]">favorites</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-body">
+                        <Film size={14} className="text-[#2A384C]" />
+                        <span className="text-[#2A384C] font-semibold">{allStats.find(s => s.id === listing.id)?.weeklyStats?.[0]?.listtracVTourViews ?? 0}</span>
+                        <span className="text-[#A0B2C2]">vtours</span>
+                      </div>
                     </div>
                   )}
                 </div>

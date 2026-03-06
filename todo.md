@@ -137,3 +137,9 @@
 - [x] Test end-to-end with real data - working correctly
 - [x] Write 8 comprehensive tests for bulk sync - all passing
 - [x] All 31 tests passing (8 new bulk sync tests + 23 existing)
+
+
+## Round 8 — Display ListTrac Metrics on Active Listings (COMPLETE)
+- [x] Add getAllWithStats tRPC query to fetch all listings with latest weekly stats
+- [x] Update AdminListings to display views, inquiries, shares, favorites, vtours for each listing
+- [x] Test and verify metrics display correctly

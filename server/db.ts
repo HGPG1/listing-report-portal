@@ -307,3 +307,15 @@ export async function getActiveListingsForCron() {
       eq(listings.status, "Active"),
     ));
 }
+
+export async function getAllWithStats() {
+  const db = await getDb();
+  if (!db) return [];
+  const allListings = await db.select().from(listings).orderBy(listings.id);
+  const allStats = await db.select().from(weeklyStats).orderBy(desc(weeklyStats.weekOf));
+  
+  return allListings.map(listing => ({
+    ...listing,
+    weeklyStats: allStats.filter(stat => stat.listingId === listing.id),
+  }));
+}

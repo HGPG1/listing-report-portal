@@ -32,6 +32,7 @@ import {
   logEmail,
   getEmailLogForListing,
   getAnalyticsOverview,
+  getAllWithStats,
 } from "./db";
 import { sendWeeklyReportToFub } from "./fub";
 import { runWeeklyEmailJob } from "./cron";
@@ -80,6 +81,10 @@ const listingsRouter = router({
       console.log(`[Router] getFull returning ${data.weeklyStats.length} weekly stats for listing ${input.id}`);
       return data;
     }),
+
+  getAllWithStats: adminProcedure.query(async () => {
+    return getAllWithStats();
+  }),
 
   create: adminProcedure
     .input(z.object({
