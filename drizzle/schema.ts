@@ -53,10 +53,13 @@ export const listings = mysqlTable("listings", {
   fubContactId: varchar("fubContactId", { length: 100 }),
   // Weekly narrative
   weeklyNarrative: text("weeklyNarrative"),
+  // Archive tracking
+  isArchived: boolean("isArchived").default(false).notNull(),
+  archivedAt: timestamp("archivedAt"),
   // Ownership
   createdByUserId: int("createdByUserId").references(() => users.id),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
 });
 
 export type Listing = typeof listings.$inferSelect;

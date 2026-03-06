@@ -148,3 +148,11 @@
 ## Critical Bugs - Round 9
 - [x] Add force sync button to Active Listings page
 - [x] Fix Weekly Stats sync button - data not updating after sync completes
+
+
+## Round 10 — Dynamic Listing Management
+- [x] Create ListTrac discovery function to fetch all active listings from organization
+- [x] Add auto-sync feature to discover new listings and update status
+- [x] Create archive system for off-market listings
+- [x] Add UI to show active vs archived listings with sync controls
+- [x] Test dynamic listing discovery and archiving workflow

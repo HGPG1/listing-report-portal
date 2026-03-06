@@ -39,7 +39,7 @@ import { runWeeklyEmailJob } from "./cron";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { syncAllZillowListings, syncZillowListing, discoverFeedId, getZillowSyncLogs } from "./zillow";
-import { syncAllListingsFromMLS, syncSingleListing, ListingMetricsData } from "./listtrac";
+import { syncAllListingsFromMLS, syncSingleListing, ListingMetricsData, discoverListingsFromListTrac, autoSyncListingsFromListTrac } from "./listtrac";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
@@ -603,6 +603,28 @@ export const appRouter = router({
           throw error;
         }
       }),
+    discover: adminProcedure.mutation(async () => {
+      try {
+        console.log(`[Router] ListTrac discovery mutation called`);
+        const discovered = await discoverListingsFromListTrac();
+        console.log(`[Router] Discovered ${discovered.length} listings from ListTrac`);
+        return { discovered, count: discovered.length };
+      } catch (error) {
+        console.error(`[Router] ListTrac discovery failed:`, error);
+        throw error;
+      }
+    }),
+    autoSync: adminProcedure.mutation(async () => {
+      try {
+        console.log(`[Router] ListTrac auto-sync mutation called`);
+        const result = await autoSyncListingsFromListTrac();
+        console.log(`[Router] ListTrac auto-sync completed: +${result.added} added, ~${result.updated} updated, ~${result.archived} archived`);
+        return result;
+      } catch (error) {
+        console.error(`[Router] ListTrac auto-sync failed:`, error);
+        throw error;
+      }
+    }),
   }),
 });
 

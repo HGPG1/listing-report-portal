@@ -119,6 +119,9 @@ export default function AdminListingEdit({ id }: Props) {
       console.error("[UI] ListTrac sync failed:", e);
       toast.error(`ListTrac sync failed: ${e.message}`);
     },
+    onSettled: () => {
+      console.log("[UI] ListTrac mutation settled");
+    },
   });
 
   const handlePhotoFile = (type: "hero" | "agent") => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -442,7 +445,13 @@ export default function AdminListingEdit({ id }: Props) {
                         return;
                       }
                       console.log("[UI] Calling ListTrac sync mutation for listing", id);
-                      listTracSyncMutation.mutate({ listingId: id, daysBack: timePeriod === 365 ? 365 : timePeriod });
+                      console.log("[UI] Mutation object:", listTracSyncMutation);
+                      console.log("[UI] Mutation mutate method:", listTracSyncMutation.mutate);
+                      try {
+                        listTracSyncMutation.mutate({ listingId: id, daysBack: timePeriod === 365 ? 365 : timePeriod });
+                      } catch (e) {
+                        console.error("[UI] Error calling mutate:", e);
+                      }
                     }}
                     disabled={!data?.listing.mlsNumber || listTracSyncMutation.isPending}
                     className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
