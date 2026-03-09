@@ -113,7 +113,23 @@ export default function AdminListingEdit({ id }: Props) {
       // Invalidate the cache first to force a fresh fetch
       await utils.listings.getFull.invalidate({ id });
       // Then refetch to get the new data
-      await utils.listings.getFull.refetch({ id });
+      const refreshedData = await utils.listings.getFull.refetch({ id });
+      // Auto-populate form with new synced data
+      await new Promise(resolve => setTimeout(resolve, 500)); // Wait for cache to update
+      const updatedData = await utils.listings.getFull.getData({ id });
+      if (updatedData?.weeklyStats?.[0]) {
+        const stats = updatedData.weeklyStats[0];
+        setWeeklyForm({
+          weekOf: format(new Date(stats.weekOf), "yyyy-MM-dd"),
+          zillowViews: String(stats.zillowViews ?? 0),
+          realtorViews: String(stats.realtorViews ?? 0),
+          redfinViews: String(stats.redfinViews ?? 0),
+          websiteViews: String(stats.websiteViews ?? 0),
+          totalImpressions: String(stats.totalImpressions ?? 0),
+          totalVideoViews: String(stats.totalVideoViews ?? 0),
+          totalShowings: String(stats.totalShowings ?? 0),
+        });
+      }
     },
     onError: (e) => {
       console.error("[UI] ListTrac sync failed:", e);
@@ -137,7 +153,18 @@ export default function AdminListingEdit({ id }: Props) {
     e.target.value = "";
   };
   const [timePeriod, setTimePeriod] = useState<7 | 14 | 30 | 365>(7);
-  const [weeklyForm, setWeeklyForm] = useState({ weekOf: format(new Date(), "yyyy-MM-dd"), zillowViews: "0", realtorViews: "0", redfinViews: "0", websiteViews: "0", totalImpressions: "0", totalVideoViews: "0", totalShowings: "0" });
+  
+  const latestStats = data?.weeklyStats?.[0];
+  const [weeklyForm, setWeeklyForm] = useState(() => ({
+    weekOf: latestStats ? format(new Date(latestStats.weekOf), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+    zillowViews: String(latestStats?.zillowViews ?? 0),
+    realtorViews: String(latestStats?.realtorViews ?? 0),
+    redfinViews: String(latestStats?.redfinViews ?? 0),
+    websiteViews: String(latestStats?.websiteViews ?? 0),
+    totalImpressions: String(latestStats?.totalImpressions ?? 0),
+    totalVideoViews: String(latestStats?.totalVideoViews ?? 0),
+    totalShowings: String(latestStats?.totalShowings ?? 0),
+  }));
   const [showingForm, setShowingForm] = useState({ showingDate: format(new Date(), "yyyy-MM-dd"), buyerAgentName: "", feedbackSummary: "", starRating: "" });
   const [offerForm, setOfferForm] = useState({ offerDate: format(new Date(), "yyyy-MM-dd"), offerPrice: "", status: "Active", notes: "" });
   const [socialForm, setSocialForm] = useState({ platform: "Instagram", postUrl: "", impressions: "0", reach: "0", linkClicks: "0", videoViews: "0", postedAt: format(new Date(), "yyyy-MM-dd") });

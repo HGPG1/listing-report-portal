@@ -1,0 +1,21 @@
+{
+  "query": "SELECT id, listingId, weekOf, listtracViews, zillowViews, realtorViews, redfinViews, websiteViews, platformBreakdown FROM weekly_stats ORDER BY updatedAt DESC LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT id, listingId, weekOf, listtracViews, zillowViews, realtorViews, redfinViews, websiteViews, platformBreakdown FROM weekly_stats ORDER BY updatedAt DESC LIMIT 1;",
+  "rows": [
+    {
+      "id": "30001",
+      "listingId": "1",
+      "weekOf": "2026-03-01 05:00:00",
+      "listtracViews": "751",
+      "zillowViews": "391",
+      "realtorViews": "176",
+      "redfinViews": "0",
+      "websiteViews": "0",
+      "platformBreakdown": "{\"CINC\":{\"views\":1,\"inquiries\":0},\"CoreLogic - Matrix\":{\"views\":51,\"inquiries\":0},\"CoreLogic - OneHome\":{\"views\":26,\"inquiries\":0},\"Cyberitas\":{\"views\":3,\"inquiries\":0},\"Highgarden Real Estate\":{\"views\":1,\"inquiries\":0},\"IDC Global\":{\"views\":2,\"inquiries\":0},\"IDX Broker\":{\"views\":1,\"inquiries\":0},\"Inside Real Estate\":{\"views\":1,\"inquiries\":0},\"Luxury Presence\":{\"views\":13,\"inquiries\":0},\"Real Geeks\":{\"views\":1,\"inquiries\":0},\"Realtor.com\":{\"views\":176,\"inquiries\":0},\"Showcase IDX\":{\"views\":4,\"inquiries\":0},\"Sierra Interactive LLC\":{\"views\":3,\"inquiries\":0},\"Smarter Agent\":{\"views\":1,\"inquiries\":0},\"Trulia\":{\"views\":73,\"inquiries\":0},\"Xome\":{\"views\":2,\"inquiries\":0},\"Ylopo\":{\"views\":1,\"inquiries\":0},\"Zillow.com\":{\"views\":391,\"inquiries\":0}}"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tlistingId\tweekOf\tlisttracViews\tzillowViews\trealtorViews\tredfinViews\twebsiteViews\tplatformBreakdown\n30001\t1\t2026-03-01 05:00:00\t751\t391\t176\t0\t0\t{\"CINC\":{\"views\":1,\"inquiries\":0},\"CoreLogic - Matrix\":{\"views\":51,\"inquiries\":0},\"CoreLogic - OneHome\":{\"views\":26,\"inquiries\":0},\"Cyberitas\":{\"views\":3,\"inquiries\":0},\"Highgarden Real Estate\":{\"views\":1,\"inquiries\":0},\"IDC Global\":{\"views\":2,\"inquiries\":0},\"IDX Broker\":{\"views\":1,\"inquiries\":0},\"Inside Real Estate\":{\"views\":1,\"inquiries\":0},\"Luxury Presence\":{\"views\":13,\"inquiries\":0},\"Real Geeks\":{\"views\":1,\"inquiries\":0},\"Realtor.com\":{\"views\":176,\"inquiries\":0},\"Showcase IDX\":{\"views\":4,\"inquiries\":0},\"Sierra Interactive LLC\":{\"views\":3,\"inquiries\":0},\"Smarter Agent\":{\"views\":1,\"inquiries\":0},\"Trulia\":{\"views\":73,\"inquiries\":0},\"Xome\":{\"views\":2,\"inquiries\":0},\"Ylopo\":{\"views\":1,\"inquiries\":0},\"Zillow.com\":{\"views\":391,\"inquiries\":0}}\n",
+  "stderr": "",
+  "execution_time_ms": 360
+}

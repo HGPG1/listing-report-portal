@@ -158,7 +158,11 @@
 - [x] Test dynamic listing discovery and archiving workflow
 
 
-## Critical Bugs - Round 11
-- [ ] Auto-sync shows +0 added when it should be discovering listings
-- [ ] Sync metrics returns zeros for inquiries/shares/favorites (only views updates)
-- [ ] ListTrac API response parsing is broken - not extracting all metrics correctly
+## Round 11 — Platform-Specific Metrics from ListTrac
+- [ ] Extract Zillow views from ListTrac API response
+- [ ] Extract Realtor.com views from ListTrac API response
+- [ ] Extract Redfin views from ListTrac API response
+- [ ] Extract Website views from ListTrac API response
+- [ ] Update database schema to store platform-specific metrics
+- [ ] Update weekly stats form to auto-populate from ListTrac
+- [ ] Test platform-specific data syncing for all listings

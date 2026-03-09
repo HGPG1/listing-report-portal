@@ -283,6 +283,12 @@ export async function syncSingleListing(listingId: number, daysBack: number = 7)
       )
       .limit(1);
     
+    // Extract platform-specific views from breakdown
+    const zillowViews = metrics.platformBreakdown["Zillow.com"]?.views || 0;
+    const realtorViews = metrics.platformBreakdown["Realtor.com"]?.views || 0;
+    const redfinViews = metrics.platformBreakdown["Redfin"]?.views || 0;
+    const websiteViews = metrics.platformBreakdown["Website"]?.views || 0;
+    
     if (existing.length > 0) {
       // Update existing record
       await db
@@ -293,6 +299,10 @@ export async function syncSingleListing(listingId: number, daysBack: number = 7)
           listtracShares: metrics.shares,
           listtracFavorites: metrics.favorites,
           listtracVTourViews: metrics.vTourViews,
+          zillowViews,
+          realtorViews,
+          redfinViews,
+          websiteViews,
           platformBreakdown: JSON.stringify(metrics.platformBreakdown),
           dateRangeStart: startDate,
           dateRangeEnd: endDate,
@@ -301,20 +311,22 @@ export async function syncSingleListing(listingId: number, daysBack: number = 7)
         .where(eq(weeklyStats.id, existing[0].id));
       console.log(`[ListTrac] Updated existing stats for listing ${listingId}`);
     } else {
-      // Insert new record
+      // Create new record
       await db.insert(weeklyStats).values({
-        listingId: listingId,
-        weekOf: weekOf,
+        listingId,
+        weekOf,
         listtracViews: metrics.views,
         listtracInquiries: metrics.inquiries,
         listtracShares: metrics.shares,
         listtracFavorites: metrics.favorites,
         listtracVTourViews: metrics.vTourViews,
+        zillowViews,
+        realtorViews,
+        redfinViews,
+        websiteViews,
         platformBreakdown: JSON.stringify(metrics.platformBreakdown),
         dateRangeStart: startDate,
         dateRangeEnd: endDate,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
       console.log(`[ListTrac] Created new stats for listing ${listingId}`);
     }
