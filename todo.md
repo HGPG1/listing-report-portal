@@ -168,9 +168,15 @@
 - [x] Test platform-specific data syncing for all listings
 
 ## Round 12 — Major Platform Tracking & All-Time Sync
-- [ ] Update database schema to track major platforms individually (Zillow, Realtor, MLS, OneHome, Trulia)
-- [ ] Add "other_sources" field to aggregate smaller platforms (40+ sites)
-- [ ] Update ListTrac service to extract and aggregate platform data correctly
-- [ ] Add "Sync All Time" button to pull all historical ListTrac data
-- [ ] Update UI to display major platforms + "Other Sources" aggregation
-- [ ] Test major platform tracking across all 7 listings
+- [x] Update database schema to track major platforms individually (Zillow, Realtor, MLS, OneHome, Trulia)
+- [x] Add "other_sources" field to aggregate smaller platforms (40+ sites)
+- [x] Update ListTrac service to extract and aggregate platform data correctly
+- [x] Add "Sync All Time" button to pull all historical ListTrac data
+- [x] Update UI to display major platforms + "Other Sources" aggregation
+- [x] Test major platform tracking across all 7 listings
+
+## Round 13 — Fix Life-of-Listing Sync
+- [x] Update syncSingleListing to support life-of-listing date range (no upper limit)
+- [x] Change ALL TIME button to pass special value (-1) for unlimited history
+- [x] Update date range calculation to use listing's original list date when available (5-year fallback)
+- [x] Test ALL TIME sync pulls complete listing history from ListTrac (3/10/2021 to 3/9/2026 = 5 years)

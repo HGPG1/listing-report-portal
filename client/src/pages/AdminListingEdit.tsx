@@ -154,7 +154,7 @@ export default function AdminListingEdit({ id }: Props) {
     reader.readAsDataURL(file);
     e.target.value = "";
   };
-  const [timePeriod, setTimePeriod] = useState<7 | 14 | 30 | 365>(7);
+  const [timePeriod, setTimePeriod] = useState<7 | 14 | 30 | -1>(7);
   
   const latestStats = data?.weeklyStats?.[0];
   const [weeklyForm, setWeeklyForm] = useState<Record<string, string>>(() => ({
@@ -478,7 +478,7 @@ export default function AdminListingEdit({ id }: Props) {
                       console.log("[UI] Mutation object:", listTracSyncMutation);
                       console.log("[UI] Mutation mutate method:", listTracSyncMutation.mutate);
                       try {
-                        listTracSyncMutation.mutate({ listingId: id, daysBack: timePeriod === 365 ? 365 : timePeriod });
+                        listTracSyncMutation.mutate({ listingId: id, daysBack: timePeriod });
                       } catch (e) {
                         console.error("[UI] Error calling mutate:", e);
                       }
@@ -493,16 +493,16 @@ export default function AdminListingEdit({ id }: Props) {
                 </div>
                 
                 {/* Time Period Selector */}
-                        <div className="flex gap-2">
+                <div className="flex gap-2">
                   {[
                     { value: 7, label: "7 DAY" },
                     { value: 14, label: "14 DAY" },
                     { value: 30, label: "30 DAY" },
-                    { value: 365, label: "ALL TIME" },
+                    { value: -1, label: "ALL TIME" },
                   ].map(({ value, label }) => (
                     <button
                       key={value}
-                      onClick={() => setTimePeriod(value as 7 | 14 | 30 | 365)}
+                      onClick={() => setTimePeriod(value as 7 | 14 | 30 | -1)}
                       className={`px-3 py-1 rounded-lg text-xs font-heading uppercase tracking-wider transition-colors ${
                         timePeriod === value
                           ? "bg-[#2A384C] text-white"

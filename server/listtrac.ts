@@ -273,7 +273,8 @@ async function getListingMetrics(
 
 // ─── Sync Functions ─────────────────────────────────────────────────────────
 export async function syncSingleListing(listingId: number, daysBack: number = 7): Promise<ListingMetricsData> {
-  console.log(`[ListTrac] Starting sync for single listing ${listingId} (last ${daysBack} days)`);
+  const daysLabel = daysBack === -1 ? "life of listing" : `last ${daysBack} days`;
+  console.log(`[ListTrac] Starting sync for single listing ${listingId} (${daysLabel})`);
   
   const db = await getDb();
   if (!db) {
@@ -295,7 +296,16 @@ export async function syncSingleListing(listingId: number, daysBack: number = 7)
     
     // Calculate date range
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - daysBack * 24 * 60 * 60 * 1000);
+    let startDate: Date;
+    
+    if (daysBack === -1) {
+      // Life of listing: use listing's original list date or go back 5 years
+      const listingListDate = listing[0].listDate ? new Date(listing[0].listDate) : new Date(endDate.getTime() - 5 * 365 * 24 * 60 * 60 * 1000);
+      startDate = listingListDate;
+      console.log(`[ListTrac] Life-of-listing sync: using list date ${listingListDate.toISOString()}`);
+    } else {
+      startDate = new Date(endDate.getTime() - daysBack * 24 * 60 * 60 * 1000);
+    }
     
     const startDateStr = startDate.toISOString().split("T")[0]!.replace(/-/g, "");
     const endDateStr = endDate.toISOString().split("T")[0]!.replace(/-/g, "");
@@ -385,7 +395,8 @@ export async function syncSingleListing(listingId: number, daysBack: number = 7)
 }
 
 export async function syncAllListingsFromMLS(daysBack: number = 7): Promise<{ success: boolean; listingsUpdated: number }> {
-  console.log(`[ListTrac] Starting bulk sync for MLS ${USERNAME} (last ${daysBack} days)`);
+  const daysLabel = daysBack === -1 ? "life of listing" : `last ${daysBack} days`;
+  console.log(`[ListTrac] Starting bulk sync for MLS ${USERNAME} (${daysLabel})`);
   
   const db = await getDb();
   if (!db) {
@@ -401,7 +412,15 @@ export async function syncAllListingsFromMLS(daysBack: number = 7): Promise<{ su
     
     // Calculate date range
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - daysBack * 24 * 60 * 60 * 1000);
+    let startDate: Date;
+    
+    if (daysBack === -1) {
+      // Life of listing: go back 5 years as a safe default
+      startDate = new Date(endDate.getTime() - 5 * 365 * 24 * 60 * 60 * 1000);
+      console.log(`[ListTrac] Life-of-listing sync: using 5-year default`);
+    } else {
+      startDate = new Date(endDate.getTime() - daysBack * 24 * 60 * 60 * 1000);
+    }
     
     const startDateStr = startDate.toISOString().split("T")[0]!.replace(/-/g, "");
     const endDateStr = endDate.toISOString().split("T")[0]!.replace(/-/g, "");
