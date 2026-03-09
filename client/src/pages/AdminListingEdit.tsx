@@ -121,10 +121,12 @@ export default function AdminListingEdit({ id }: Props) {
         const stats = updatedData.weeklyStats[0];
         setWeeklyForm({
           weekOf: format(new Date(stats.weekOf), "yyyy-MM-dd"),
-          zillowViews: String(stats.zillowViews ?? 0),
-          realtorViews: String(stats.realtorViews ?? 0),
-          redfinViews: String(stats.redfinViews ?? 0),
-          websiteViews: String(stats.websiteViews ?? 0),
+          zillowListtracViews: String(stats.zillowListtracViews ?? 0),
+          realtorListtracViews: String(stats.realtorListtracViews ?? 0),
+          mlsListtracViews: String(stats.mlsListtracViews ?? 0),
+          oneHomeListtracViews: String(stats.oneHomeListtracViews ?? 0),
+          truliaListtracViews: String(stats.truliaListtracViews ?? 0),
+          otherSourcesListtracViews: String(stats.otherSourcesListtracViews ?? 0),
           totalImpressions: String(stats.totalImpressions ?? 0),
           totalVideoViews: String(stats.totalVideoViews ?? 0),
           totalShowings: String(stats.totalShowings ?? 0),
@@ -155,14 +157,15 @@ export default function AdminListingEdit({ id }: Props) {
   const [timePeriod, setTimePeriod] = useState<7 | 14 | 30 | 365>(7);
   
   const latestStats = data?.weeklyStats?.[0];
-  const [weeklyForm, setWeeklyForm] = useState(() => ({
+  const [weeklyForm, setWeeklyForm] = useState<Record<string, string>>(() => ({
     weekOf: latestStats ? format(new Date(latestStats.weekOf), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-    zillowViews: String(latestStats?.zillowViews ?? 0),
-    realtorViews: String(latestStats?.realtorViews ?? 0),
-    redfinViews: String(latestStats?.redfinViews ?? 0),
-    websiteViews: String(latestStats?.websiteViews ?? 0),
+    zillowListtracViews: String(latestStats?.zillowListtracViews ?? 0),
+    realtorListtracViews: String(latestStats?.realtorListtracViews ?? 0),
+    mlsListtracViews: String(latestStats?.mlsListtracViews ?? 0),
+    oneHomeListtracViews: String(latestStats?.oneHomeListtracViews ?? 0),
+    truliaListtracViews: String(latestStats?.truliaListtracViews ?? 0),
+    otherSourcesListtracViews: String(latestStats?.otherSourcesListtracViews ?? 0),
     totalImpressions: String(latestStats?.totalImpressions ?? 0),
-    totalVideoViews: String(latestStats?.totalVideoViews ?? 0),
     totalShowings: String(latestStats?.totalShowings ?? 0),
   }));
   const [showingForm, setShowingForm] = useState({ showingDate: format(new Date(), "yyyy-MM-dd"), buyerAgentName: "", feedbackSummary: "", starRating: "" });
@@ -490,13 +493,13 @@ export default function AdminListingEdit({ id }: Props) {
                 </div>
                 
                 {/* Time Period Selector */}
-                <div className="flex gap-2 flex-wrap">
+                        <div className="flex gap-2">
                   {[
-                    { label: "7 Day", value: 7 },
-                    { label: "14 Day", value: 14 },
-                    { label: "30 Day", value: 30 },
-                    { label: "All Time", value: 365 },
-                  ].map(({ label, value }) => (
+                    { value: 7, label: "7 DAY" },
+                    { value: 14, label: "14 DAY" },
+                    { value: 30, label: "30 DAY" },
+                    { value: 365, label: "ALL TIME" },
+                  ].map(({ value, label }) => (
                     <button
                       key={value}
                       onClick={() => setTimePeriod(value as 7 | 14 | 30 | 365)}
@@ -510,6 +513,17 @@ export default function AdminListingEdit({ id }: Props) {
                     </button>
                   ))}
                 </div>
+                <Button
+                  onClick={() => {
+                    listTracSyncMutation.mutate({ listingId: id, daysBack: timePeriod });
+                  }}
+                  disabled={listTracSyncMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-heading text-xs tracking-wide"
+                  size="sm"
+                >
+                  <RefreshCw size={13} className="mr-1" />
+                  {listTracSyncMutation.isPending ? "Syncing..." : "Sync Now"}
+                </Button>
               </div>
             </section>
             
@@ -556,12 +570,13 @@ export default function AdminListingEdit({ id }: Props) {
                   <Input type="date" value={weeklyForm.weekOf} onChange={e => setWeeklyForm(f => ({ ...f, weekOf: e.target.value }))} className="mt-1 font-body border-[#D1D9DF]" />
                 </div>
                 {[
-                  { key: "zillowViews", label: "Zillow Views" },
-                  { key: "realtorViews", label: "Realtor.com Views" },
-                  { key: "redfinViews", label: "Redfin Views" },
-                  { key: "websiteViews", label: "Website Views" },
+                  { key: "zillowListtracViews", label: "Zillow Views" },
+                  { key: "realtorListtracViews", label: "Realtor.com Views" },
+                  { key: "mlsListtracViews", label: "MLS Views" },
+                  { key: "oneHomeListtracViews", label: "OneHome Views" },
+                  { key: "truliaListtracViews", label: "Trulia Views" },
+                  { key: "otherSourcesListtracViews", label: "Other Sources" },
                   { key: "totalImpressions", label: "Total Impressions" },
-                  { key: "totalVideoViews", label: "Total Video Views" },
                   { key: "totalShowings", label: "Total Showings" },
                 ].map(({ key, label }) => (
                   <div key={key}>
@@ -581,12 +596,13 @@ export default function AdminListingEdit({ id }: Props) {
                   onClick={() => upsertStatsMutation.mutate({
                     listingId: id,
                     weekOf: new Date(weeklyForm.weekOf + "T12:00:00"),
-                    zillowViews: parseInt(weeklyForm.zillowViews) || 0,
-                    realtorViews: parseInt(weeklyForm.realtorViews) || 0,
-                    redfinViews: parseInt(weeklyForm.redfinViews) || 0,
-                    websiteViews: parseInt(weeklyForm.websiteViews) || 0,
+                    zillowListtracViews: parseInt(weeklyForm.zillowListtracViews) || 0,
+                    realtorListtracViews: parseInt(weeklyForm.realtorListtracViews) || 0,
+                    mlsListtracViews: parseInt(weeklyForm.mlsListtracViews) || 0,
+                    oneHomeListtracViews: parseInt(weeklyForm.oneHomeListtracViews) || 0,
+                    truliaListtracViews: parseInt(weeklyForm.truliaListtracViews) || 0,
+                    otherSourcesListtracViews: parseInt(weeklyForm.otherSourcesListtracViews) || 0,
                     totalImpressions: parseInt(weeklyForm.totalImpressions) || 0,
-                    totalVideoViews: parseInt(weeklyForm.totalVideoViews) || 0,
                     totalShowings: parseInt(weeklyForm.totalShowings) || 0,
                   })}
                   disabled={upsertStatsMutation.isPending}

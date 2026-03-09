@@ -228,16 +228,29 @@ const statsRouter = router({
     .input(z.object({
       listingId: z.number(),
       weekOf: z.date(),
-      zillowViews: z.number().default(0),
-      realtorViews: z.number().default(0),
-      redfinViews: z.number().default(0),
-      websiteViews: z.number().default(0),
+      zillowListtracViews: z.number().default(0),
+      realtorListtracViews: z.number().default(0),
+      mlsListtracViews: z.number().default(0),
+      oneHomeListtracViews: z.number().default(0),
+      truliaListtracViews: z.number().default(0),
+      otherSourcesListtracViews: z.number().default(0),
       totalImpressions: z.number().default(0),
-      totalVideoViews: z.number().default(0),
       totalShowings: z.number().default(0),
     }))
     .mutation(async ({ input }) => {
-      await upsertWeeklyStats(input);
+      // Map new field names to database field names
+      const mappedInput = {
+        listingId: input.listingId,
+        weekOf: input.weekOf,
+        zillowViews: input.zillowListtracViews,
+        realtorViews: input.realtorListtracViews,
+        redfinViews: input.mlsListtracViews,
+        websiteViews: input.oneHomeListtracViews,
+        totalImpressions: input.totalImpressions,
+        totalVideoViews: input.truliaListtracViews,
+        totalShowings: input.totalShowings,
+      };
+      await upsertWeeklyStats(mappedInput);
       return { success: true };
     }),
 

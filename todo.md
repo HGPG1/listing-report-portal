@@ -159,10 +159,18 @@
 
 
 ## Round 11 — Platform-Specific Metrics from ListTrac
-- [ ] Extract Zillow views from ListTrac API response
-- [ ] Extract Realtor.com views from ListTrac API response
-- [ ] Extract Redfin views from ListTrac API response
-- [ ] Extract Website views from ListTrac API response
-- [ ] Update database schema to store platform-specific metrics
-- [ ] Update weekly stats form to auto-populate from ListTrac
-- [ ] Test platform-specific data syncing for all listings
+- [x] Extract Zillow views from ListTrac API response
+- [x] Extract Realtor.com views from ListTrac API response
+- [x] Extract Redfin views from ListTrac API response
+- [x] Extract Website views from ListTrac API response
+- [x] Update database schema to store platform-specific metrics
+- [x] Update weekly stats form to auto-populate from ListTrac
+- [x] Test platform-specific data syncing for all listings
+
+## Round 12 — Major Platform Tracking & All-Time Sync
+- [ ] Update database schema to track major platforms individually (Zillow, Realtor, MLS, OneHome, Trulia)
+- [ ] Add "other_sources" field to aggregate smaller platforms (40+ sites)
+- [ ] Update ListTrac service to extract and aggregate platform data correctly
+- [ ] Add "Sync All Time" button to pull all historical ListTrac data
+- [ ] Update UI to display major platforms + "Other Sources" aggregation
+- [ ] Test major platform tracking across all 7 listings

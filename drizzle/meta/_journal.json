@@ -43,6 +43,13 @@
       "when": 1772811859259,
       "tag": "0005_melted_sabra",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1773073129029,
+      "tag": "0006_steep_morgan_stark",
+      "breakpoints": true
     }
   ]
 }

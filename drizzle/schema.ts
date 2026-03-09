@@ -97,6 +97,13 @@ export const weeklyStats = mysqlTable("weekly_stats", {
   listtracShares: int("listtracShares").default(0),
   listtracFavorites: int("listtracFavorites").default(0),
   listtracVTourViews: int("listtracVTourViews").default(0),
+  // Major platform tracking (extracted from ListTrac)
+  zillowListtracViews: int("zillowListtracViews").default(0),
+  realtorListtracViews: int("realtorListtracViews").default(0),
+  mlsListtracViews: int("mlsListtracViews").default(0),
+  oneHomeListtracViews: int("oneHomeListtracViews").default(0),
+  truliaListtracViews: int("truliaListtracViews").default(0),
+  otherSourcesListtracViews: int("otherSourcesListtracViews").default(0),
   // Date range tracking (for custom date range syncs)
   dateRangeStart: timestamp("dateRangeStart"),
   dateRangeEnd: timestamp("dateRangeEnd"),

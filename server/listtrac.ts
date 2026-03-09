@@ -82,6 +82,13 @@ export interface ListingMetricsData {
   favorites: number;
   vTourViews: number;
   platformBreakdown: Record<string, { views: number; inquiries: number }>;
+  // Major platforms extracted from breakdown
+  zillowViews: number;
+  realtorViews: number;
+  mlsViews: number;
+  oneHomeViews: number;
+  truliaViews: number;
+  otherSourcesViews: number;
 }
 
 async function getListingMetrics(
@@ -154,6 +161,14 @@ async function getListingMetrics(
     let totalVTours = 0;
     const platformBreakdown: Record<string, { views: number; inquiries: number }> = {};
     
+    // Major platforms to track individually
+    let zillowViews = 0;
+    let realtorViews = 0;
+    let mlsViews = 0;
+    let oneHomeViews = 0;
+    let truliaViews = 0;
+    let otherSourcesViews = 0;
+    
     console.log(`[ListTrac] Metrics object exists: ${!!data.response.metrics}`);
     console.log(`[ListTrac] Sites array exists: ${!!data.response.metrics?.sites}`);
     
@@ -212,11 +227,29 @@ async function getListingMetrics(
             views: platformViews,
             inquiries: platformInquiries,
           };
+          
+          // Extract major platforms
+          const lowerPlatform = platformName.toLowerCase();
+          if (lowerPlatform.includes("zillow")) {
+            zillowViews += platformViews;
+          } else if (lowerPlatform.includes("realtor")) {
+            realtorViews += platformViews;
+          } else if (lowerPlatform.includes("matrix") || lowerPlatform.includes("mls") || lowerPlatform.includes("canopy")) {
+            mlsViews += platformViews;
+          } else if (lowerPlatform.includes("onehome")) {
+            oneHomeViews += platformViews;
+          } else if (lowerPlatform.includes("trulia")) {
+            truliaViews += platformViews;
+          } else {
+            // Aggregate all other sources
+            otherSourcesViews += platformViews;
+          }
         }
       }
     }
     
     console.log(`[ListTrac] FINAL METRICS for ${mlsNumber}: views=${totalViews}, inquiries=${totalInquiries}, shares=${totalShares}, favorites=${totalFavorites}, vtours=${totalVTours}`);
+    console.log(`[ListTrac] Major platforms: Zillow=${zillowViews}, Realtor=${realtorViews}, MLS=${mlsViews}, OneHome=${oneHomeViews}, Trulia=${truliaViews}, Other=${otherSourcesViews}`);
     
     return {
       views: totalViews,
@@ -225,6 +258,12 @@ async function getListingMetrics(
       favorites: totalFavorites,
       vTourViews: totalVTours,
       platformBreakdown,
+      zillowViews,
+      realtorViews,
+      mlsViews,
+      oneHomeViews,
+      truliaViews,
+      otherSourcesViews,
     };
   } catch (error) {
     console.error(`[ListTrac] Failed to fetch metrics for MLS ${mlsNumber}:`, error);
@@ -283,11 +322,13 @@ export async function syncSingleListing(listingId: number, daysBack: number = 7)
       )
       .limit(1);
     
-    // Extract platform-specific views from breakdown
-    const zillowViews = metrics.platformBreakdown["Zillow.com"]?.views || 0;
-    const realtorViews = metrics.platformBreakdown["Realtor.com"]?.views || 0;
-    const redfinViews = metrics.platformBreakdown["Redfin"]?.views || 0;
-    const websiteViews = metrics.platformBreakdown["Website"]?.views || 0;
+    // Extract major platform views from metrics
+    const zillowViews = metrics.zillowViews;
+    const realtorViews = metrics.realtorViews;
+    const mlsViews = metrics.mlsViews;
+    const oneHomeViews = metrics.oneHomeViews;
+    const truliaViews = metrics.truliaViews;
+    const otherSourcesViews = metrics.otherSourcesViews;
     
     if (existing.length > 0) {
       // Update existing record
@@ -299,10 +340,12 @@ export async function syncSingleListing(listingId: number, daysBack: number = 7)
           listtracShares: metrics.shares,
           listtracFavorites: metrics.favorites,
           listtracVTourViews: metrics.vTourViews,
-          zillowViews,
-          realtorViews,
-          redfinViews,
-          websiteViews,
+          zillowListtracViews: zillowViews,
+          realtorListtracViews: realtorViews,
+          mlsListtracViews: mlsViews,
+          oneHomeListtracViews: oneHomeViews,
+          truliaListtracViews: truliaViews,
+          otherSourcesListtracViews: otherSourcesViews,
           platformBreakdown: JSON.stringify(metrics.platformBreakdown),
           dateRangeStart: startDate,
           dateRangeEnd: endDate,
@@ -320,10 +363,12 @@ export async function syncSingleListing(listingId: number, daysBack: number = 7)
         listtracShares: metrics.shares,
         listtracFavorites: metrics.favorites,
         listtracVTourViews: metrics.vTourViews,
-        zillowViews,
-        realtorViews,
-        redfinViews,
-        websiteViews,
+        zillowListtracViews: zillowViews,
+        realtorListtracViews: realtorViews,
+        mlsListtracViews: mlsViews,
+        oneHomeListtracViews: oneHomeViews,
+        truliaListtracViews: truliaViews,
+        otherSourcesListtracViews: otherSourcesViews,
         platformBreakdown: JSON.stringify(metrics.platformBreakdown),
         dateRangeStart: startDate,
         dateRangeEnd: endDate,
