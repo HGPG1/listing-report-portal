@@ -622,10 +622,15 @@ export default function AdminListingEdit({ id }: Props) {
               const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
               const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
               
-              // Find most recent record for each period
-              const period7day = sorted.find(s => new Date(s.weekOf) >= sevenDaysAgo);
-              const period30day = sorted.find(s => new Date(s.weekOf) >= thirtyDaysAgo && new Date(s.weekOf) < sevenDaysAgo);
-              const periodLifetime = sorted.find(s => new Date(s.weekOf) < thirtyDaysAgo) || sorted[sorted.length - 1];
+              // Get most recent record for each period (data is cumulative from list date)
+              // Last 7 Days = most recent record (cumulative from 7 days ago to today)
+              const period7day = sorted[0];
+              
+              // Last 30 Days = most recent record from 30 days ago (cumulative from 30 days ago to today)
+              const period30day = sorted.find(s => new Date(s.weekOf) <= thirtyDaysAgo);
+              
+              // Life of Listing = oldest record (cumulative from list date to today)
+              const periodLifetime = sorted[sorted.length - 1];
               
               const periods = [
                 { label: 'Last 7 Days', data: period7day },
