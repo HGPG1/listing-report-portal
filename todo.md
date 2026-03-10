@@ -203,3 +203,9 @@
 - [x] Add week-over-week comparison column showing % change from previous week (green/red coloring)
 - [x] Add bulk "Sync All Time" button to Active Listings page
 - [x] Add auto-sync on new listing creation to pull full history from ListTrac
+
+## Round 17 — Fix History Table to Show 3 Periods (7day/30day/lifetime)
+- [x] Update history table to show only 3 sync periods instead of individual weeks
+- [x] Update sync logic to map weekly records to their corresponding period
+- [x] Remove week-over-week comparison (not applicable for periods)
+- [x] Test display with Butters Way and verify correct data shows for each period
