@@ -11,17 +11,20 @@
 import * as nodeCron from "node-cron";
 import { getActiveListingsForCron, getActiveMagicLinkForListing, getFullListingData, logEmail } from "./db";
 import { sendWeeklyReportToFub } from "./fub";
-import { syncAllListingsFromMLS, runListTracTestCall } from "./listtrac";
+import { syncAllListingsFromMLS, runListTracTestCall, autoSyncListingsFromListTrac } from "./listtrac";
 
 // Default: Monday at 8:00 AM. Override with CRON_SCHEDULE env var.
 // Format: seconds minutes hours day-of-month month day-of-week
 const CRON_SCHEDULE = process.env.CRON_SCHEDULE ?? "0 0 8 * * 1";
 // ListTrac nightly sync: 2 AM every day
 const LISTTRAC_CRON_SCHEDULE = process.env.LISTTRAC_CRON_SCHEDULE ?? "0 0 2 * * *";
+// ListTrac Monday discovery: 8 AM Monday (discover new listings + sync all metrics)
+const LISTTRAC_DISCOVERY_SCHEDULE = process.env.LISTTRAC_DISCOVERY_SCHEDULE ?? "0 0 8 * * 1";
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
 let cronJob: nodeCron.ScheduledTask | null = null;
 let listTracCronJob: nodeCron.ScheduledTask | null = null;
+let listTracDiscoveryCronJob: nodeCron.ScheduledTask | null = null;
 
 export async function runWeeklyEmailJob(): Promise<{ processed: number; errors: number }> {
   console.log("[Cron] Starting weekly email job...");
@@ -150,6 +153,25 @@ export function startCronJob(): void {
     console.log(`[ListTrac Cron] Nightly sync scheduled: ${LISTTRAC_CRON_SCHEDULE} (America/New_York) — pulling last 7 days`);
   }
 
+  // Start ListTrac Monday discovery cron (8 AM Monday) — discover new listings + sync all metrics
+  if (!listTracDiscoveryCronJob && nodeCron.validate(LISTTRAC_DISCOVERY_SCHEDULE)) {
+    listTracDiscoveryCronJob = nodeCron.schedule(LISTTRAC_DISCOVERY_SCHEDULE, async () => {
+      console.log("[ListTrac Discovery Cron] Starting Monday 8 AM discovery + sync...");
+      try {
+        const result = await autoSyncListingsFromListTrac();
+        console.log(`[ListTrac Discovery Cron] Discovery complete: +${result.added} added, ~${result.updated} updated, ~${result.archived} archived`);
+        if (result.errors.length > 0) {
+          console.error("[ListTrac Discovery Cron] Errors:", result.errors);
+        }
+      } catch (error) {
+        console.error("[ListTrac Discovery Cron] Failed:", error);
+      }
+    }, {
+      timezone: process.env.CRON_TIMEZONE ?? "America/New_York",
+    });
+    console.log(`[ListTrac Discovery Cron] Monday discovery scheduled: ${LISTTRAC_DISCOVERY_SCHEDULE} (America/New_York) — discover new listings + sync all metrics`);
+  }
+
   // Run ListTrac test call 3 seconds after startup to confirm credentials
   setTimeout(() => {
     runListTracTestCall().catch(console.error);
@@ -161,5 +183,7 @@ export function stopCronJob(): void {
   cronJob = null;
   listTracCronJob?.stop();
   listTracCronJob = null;
+  listTracDiscoveryCronJob?.stop();
+  listTracDiscoveryCronJob = null;
   console.log("[Cron] All jobs stopped");
 }

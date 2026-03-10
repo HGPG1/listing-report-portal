@@ -23,20 +23,33 @@ export interface GmailMessage {
 }
 
 /**
- * Fetch ShowingTime emails from Gmail
- * Uses the Manus built-in Gmail integration
+ * Fetch ShowingTime emails from Gmail using MCP
  */
 export async function fetchShowingTimeEmails(maxResults: number = 10): Promise<GmailMessage[]> {
   try {
-    // Use the built-in Manus Gmail integration via LLM to fetch emails
-    // This is a workaround since we don't have direct Gmail API access
-    // In production, you'd use the Gmail API directly with OAuth
+    console.log("[Gmail] Fetching ShowingTime emails via MCP...");
 
-    console.log("[Gmail] Fetching ShowingTime emails...");
-
-    // For now, return empty array - you'll need to set up Gmail API credentials
-    // This is a placeholder that shows the integration point
-    return [];
+    // Use the Gmail MCP to search for ShowingTime emails
+    const { execSync } = await import("child_process");
+    
+    const query = 'from:callcenter@showingtime.com';
+    const command = `manus-mcp-cli tool call gmail_search_messages --server gmail --input '{"query": "${query}", "max_results": ${maxResults}}'`;
+    
+    try {
+      const result = execSync(command, { encoding: "utf-8" });
+      const parsed = JSON.parse(result);
+      
+      if (parsed.messages && Array.isArray(parsed.messages)) {
+        console.log(`[Gmail] Found ${parsed.messages.length} ShowingTime emails`);
+        return parsed.messages;
+      }
+      
+      console.log("[Gmail] No ShowingTime emails found");
+      return [];
+    } catch (error) {
+      console.error("[Gmail] MCP call failed:", error);
+      return [];
+    }
   } catch (error) {
     console.error("[Gmail] Fetch failed:", error);
     throw error;

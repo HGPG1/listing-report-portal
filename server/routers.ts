@@ -632,9 +632,40 @@ export const appRouter = router({
     syncEmails: adminProcedure.mutation(async () => {
       try {
         console.log(`[Router] ShowingTime email sync mutation called`);
-        // TODO: Integrate with Gmail API to fetch emails
-        // For now, return placeholder
-        return { synced: 0, message: "Gmail integration pending" };
+        const { fetchShowingTimeEmails, extractEmailBody, getEmailSubject, getEmailMessageId } = await import("./gmail");
+        // Fetch latest ShowingTime emails
+        const emails = await fetchShowingTimeEmails(50);
+        console.log(`[Router] Fetched ${emails.length} ShowingTime emails`);
+        
+        let synced = 0;
+        const errors: string[] = [];
+        
+        for (const email of emails) {
+          try {
+            const subject = getEmailSubject(email);
+            const body = extractEmailBody(email);
+            const messageId = getEmailMessageId(email);
+            
+            // Parse the email
+            const parsed = parseShowingTimeEmail(subject, body, messageId);
+            if (parsed) {
+              // Store in database
+              await storeShowingRequest(parsed);
+              synced++;
+              console.log(`[Router] Stored showing request: ${parsed.address}`);
+            } else {
+              console.log(`[Router] Could not parse email: ${subject}`);
+            }
+          } catch (error) {
+            const msg = `Failed to process email: ${error instanceof Error ? error.message : String(error)}`;
+            console.error(`[Router] ${msg}`);
+            errors.push(msg);
+          }
+        }
+        
+        return { synced, total: emails.length, errors };
+        
+        
       } catch (error) {
         console.error(`[Router] ShowingTime sync failed:`, error);
         throw error;
