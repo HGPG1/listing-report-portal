@@ -282,3 +282,40 @@ export const emailLogRelations = relations(emailLog, ({ one }) => ({
 export const zillowSyncLogsRelations = relations(zillowSyncLogs, ({ one }) => ({
   listing: one(listings, { fields: [zillowSyncLogs.listingId], references: [listings.id] }),
 }));
+
+// ─── ShowingTime Requests ──────────────────────────────────────────────────
+export const showingRequests = mysqlTable("showing_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: int("listingId").notNull().references(() => listings.id, { onDelete: "cascade" }),
+  // Property details from email
+  address: varchar("address", { length: 500 }).notNull(),
+  mlsNumber: varchar("mlsNumber", { length: 50 }),
+  listPrice: decimal("listPrice", { precision: 12, scale: 2 }),
+  // Showing details
+  requestedTime: timestamp("requestedTime"), // Original requested time
+  confirmedTime: timestamp("confirmedTime"), // Confirmed/rescheduled time
+  timeSlot: varchar("timeSlot", { length: 100 }), // "1:00 PM - 2:00 PM" format
+  // Status tracking
+  status: mysqlEnum("status", ["requested", "rescheduled", "confirmed", "completed", "cancelled"]).default("requested").notNull(),
+  // Participant info
+  buyerName: varchar("buyerName", { length: 200 }),
+  listingAgent: varchar("listingAgent", { length: 200 }),
+  showingAgent: varchar("showingAgent", { length: 200 }),
+  // Email tracking
+  emailSubject: text("emailSubject"),
+  emailMessageId: varchar("emailMessageId", { length: 500 }).unique(),
+  rawEmailBody: text("rawEmailBody"),
+  // Feedback
+  feedback: text("feedback"),
+  rating: int("rating"), // 1-5 star rating
+  // Timestamps
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ShowingRequest = typeof showingRequests.$inferSelect;
+export type InsertShowingRequest = typeof showingRequests.$inferInsert;
+
+export const showingRequestsRelations = relations(showingRequests, ({ one }) => ({
+  listing: one(listings, { fields: [showingRequests.listingId], references: [listings.id] }),
+}));

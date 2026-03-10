@@ -32,6 +32,7 @@ function CopyButton({ text }: { text: string }) {
 export default function AdminListingEdit({ id }: Props) {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
+  const { data: showingRequests } = trpc.showingtime.getForListing.useQuery({ listingId: id });
 
   const { data, isLoading, error } = trpc.listings.getFull.useQuery({ id });
   const { data: magicLink, refetch: refetchLink } = trpc.magicLinks.getForListing.useQuery({ listingId: id });
@@ -583,6 +584,34 @@ export default function AdminListingEdit({ id }: Props) {
         {/* ── Showings Tab ── */}
         <TabsContent value="showings">
           <div className="space-y-6">
+            {showingRequests && showingRequests.length > 0 && (
+              <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">ShowingTime Requests ({showingRequests.length})</h3>
+                <div className="space-y-3">
+                  {showingRequests.map((req: any) => (
+                    <div key={req.id} className="flex items-start justify-between p-4 bg-[#f5f7f9] rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-heading text-sm text-[#2A384C]">{req.timeSlot}</p>
+                          <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                            req.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                            req.status === 'rescheduled' ? 'bg-blue-100 text-blue-800' :
+                            req.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                          </span>
+                        </div>
+                        {req.buyerName && <p className="font-body text-xs text-[#A0B2C2]">Buyer: {req.buyerName}</p>}
+                        {req.listingAgent && <p className="font-body text-xs text-[#A0B2C2]">Agent: {req.listingAgent}</p>}
+                        {req.feedback && <p className="font-body text-xs text-[#2A384C] mt-1 italic">Feedback: \"{req.feedback}\"</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+            
             <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
               <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Log a Showing</h3>
               <div className="grid grid-cols-2 gap-4">

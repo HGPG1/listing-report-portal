@@ -40,6 +40,7 @@ import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 // import { syncAllZillowListings, syncZillowListing, discoverFeedId, getZillowSyncLogs } from "./zillow";
 import { syncAllListingsFromMLS, syncSingleListing, ListingMetricsData, discoverListingsFromListTrac, autoSyncListingsFromListTrac } from "./listtrac";
+import { parseShowingTimeEmail, storeShowingRequest, getShowingRequestsForListing } from "./showingtime";
 // Zillow integration disabled — using ListTrac instead
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
@@ -626,6 +627,30 @@ export const appRouter = router({
         throw error;
       }
     }),
+  }),
+  showingtime: router({
+    syncEmails: adminProcedure.mutation(async () => {
+      try {
+        console.log(`[Router] ShowingTime email sync mutation called`);
+        // TODO: Integrate with Gmail API to fetch emails
+        // For now, return placeholder
+        return { synced: 0, message: "Gmail integration pending" };
+      } catch (error) {
+        console.error(`[Router] ShowingTime sync failed:`, error);
+        throw error;
+      }
+    }),
+    getForListing: protectedProcedure
+      .input(z.object({ listingId: z.number() }))
+      .query(async ({ input }) => {
+        try {
+          const requests = await getShowingRequestsForListing(input.listingId);
+          return requests;
+        } catch (error) {
+          console.error(`[Router] Get showing requests failed:`, error);
+          throw error;
+        }
+      }),
   }),
 });
 

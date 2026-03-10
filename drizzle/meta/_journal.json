@@ -57,6 +57,13 @@
       "when": 1773116581694,
       "tag": "0007_peaceful_riptide",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1773124007468,
+      "tag": "0008_flawless_piledriver",
+      "breakpoints": true
     }
   ]
 }
