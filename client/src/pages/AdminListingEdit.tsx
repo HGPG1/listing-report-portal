@@ -32,11 +32,7 @@ function CopyButton({ text }: { text: string }) {
 export default function AdminListingEdit({ id }: Props) {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
-  const { data: showingRequests, refetch: refetchShowings } = trpc.showingtime.getForListing.useQuery({ listingId: id });
-  const syncShowingTimeMutation = trpc.showingtime.syncEmails.useMutation({
-    onSuccess: () => { toast.success("ShowingTime emails synced!"); refetchShowings(); },
-    onError: (e) => toast.error(e.message),
-  });
+  const { data: showingRequests } = trpc.showingtime.getForListing.useQuery({ listingId: id });
 
   const { data, isLoading, error } = trpc.listings.getFull.useQuery({ id });
   const { data: magicLink, refetch: refetchLink } = trpc.magicLinks.getForListing.useQuery({ listingId: id });
@@ -588,19 +584,9 @@ export default function AdminListingEdit({ id }: Props) {
         {/* ── Showings Tab ── */}
         <TabsContent value="showings">
           <div className="space-y-6">
-            <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider">ShowingTime Requests {showingRequests && `(${showingRequests.length})`}</h3>
-                <Button
-                  onClick={() => syncShowingTimeMutation.mutate()}
-                  disabled={syncShowingTimeMutation.isPending}
-                  className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide text-xs"
-                >
-                  <RefreshCw size={14} className="mr-2" />
-                  Sync Emails
-                </Button>
-              </div>
-              {showingRequests && showingRequests.length > 0 ? (
+            {showingRequests && showingRequests.length > 0 && (
+              <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">ShowingTime Requests ({showingRequests.length})</h3>
                 <div className="space-y-3">
                   {showingRequests.map((req: any) => (
                     <div key={req.id} className="flex items-start justify-between p-4 bg-[#f5f7f9] rounded-lg">
@@ -623,10 +609,8 @@ export default function AdminListingEdit({ id }: Props) {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="font-body text-sm text-[#A0B2C2] text-center py-4">No ShowingTime requests yet. Click "Sync Emails" to fetch from your inbox.</p>
-              )}
-            </section>
+              </section>
+            )}
             
             <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
               <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Log a Showing</h3>
