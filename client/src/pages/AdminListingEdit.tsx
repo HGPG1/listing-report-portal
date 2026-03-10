@@ -74,6 +74,13 @@ export default function AdminListingEdit({ id }: Props) {
     onSuccess: () => utils.listings.getFull.invalidate({ id }),
     onError: (e) => toast.error(e.message),
   });
+  const syncShowingTimeEmailsMutation = trpc.showingtime.syncEmails.useMutation({
+    onSuccess: (result) => {
+      toast.success(`Synced ${result.synced} ShowingTime emails`);
+      utils.showingtime.getForListing.invalidate({ listingId: id });
+    },
+    onError: (e) => toast.error(e.message),
+  });
   const createSocialMutation = trpc.stats.createSocial.useMutation({
     onSuccess: () => { toast.success("Social post added."); utils.listings.getFull.invalidate({ id }); },
     onError: (e) => toast.error(e.message),
@@ -585,8 +592,19 @@ export default function AdminListingEdit({ id }: Props) {
         <TabsContent value="showings">
           <div className="space-y-6">
             {showingRequests && showingRequests.length > 0 && (
-              <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
-                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">ShowingTime Requests ({showingRequests.length})</h3>
+            <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider">ShowingTime Requests ({showingRequests.length})</h3>
+                <Button
+                  onClick={() => syncShowingTimeEmailsMutation.mutate()}
+                  disabled={syncShowingTimeEmailsMutation.isPending}
+                  size="sm"
+                  className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
+                >
+                  <RefreshCw size={14} className="mr-2" />
+                  {syncShowingTimeEmailsMutation.isPending ? "Syncing..." : "Sync Emails"}
+                </Button>
+              </div>
                 <div className="space-y-3">
                   {showingRequests.map((req: any) => (
                     <div key={req.id} className="flex items-start justify-between p-4 bg-[#f5f7f9] rounded-lg">
