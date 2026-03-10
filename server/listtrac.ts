@@ -559,20 +559,74 @@ export async function discoverListingsFromListTrac(): Promise<
     listingDetails?: Record<string, any>;
   }>
 > {
-  console.log("[ListTrac] Starting listing discovery from database...");
+  console.log("[ListTrac] Starting listing discovery from ListTrac API...");
   
   try {
-    const db = await getDb();
-    if (!db) {
-      throw new Error("Database not available");
+    const token = await getOrRefreshToken();
+    
+    // Call ListTrac organization endpoint to get all listings
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const startDate = ninetyDaysAgo.toISOString().split('T')[0];
+    const endDate = new Date().toISOString().split('T')[0];
+    
+    const payload = {
+      request: {
+        token,
+        viewtype: "organization",
+        metric: "view",
+        details: "true",
+        startdate: startDate,
+        enddate: endDate,
+      },
+    };
+    
+    console.log(`[ListTrac] Fetching all listings from organization via API`);
+    const response = await fetch(`${LISTTRAC_BASE_URL}/getmetricsbyorganization`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ListTrac API HTTP error ${response.status}: ${errorText}`);
     }
     
-    // Since ListTrac API doesn't have a dedicated listings endpoint,
-    // we return the listings already in our database.
-    // The sync buttons will keep them up-to-date with ListTrac metrics.
-    const allListings = await db.select().from(listings);
+    const data = await response.json() as any;
     
-    console.log(`[ListTrac] Found ${allListings.length} listings in database`);
+    if (!data.response || data.response.returncode !== 0) {
+      const errorMsg = data.response?.message || "Unknown error";
+      console.error("[ListTrac] ERROR - API response:", JSON.stringify(data, null, 2));
+      throw new Error(`ListTrac API error: ${errorMsg}`);
+    }
+    
+    // Extract all unique listing IDs from the organization response
+    const discoveredListings = new Map<string, any>();
+    
+    if (data.response.metrics?.sites) {
+      for (const site of data.response.metrics.sites) {
+        if (site.dates) {
+          for (const dateEntry of site.dates) {
+            if (dateEntry.details) {
+              for (const detail of dateEntry.details) {
+                const mlsNumber = detail.listingid || "";
+                if (mlsNumber && !discoveredListings.has(mlsNumber)) {
+                  discoveredListings.set(mlsNumber, {
+                    mlsNumber,
+                    address: `MLS ${mlsNumber}`,
+                    status: "Active",
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    const allListings = Array.from(discoveredListings.values());
+    console.log(`[ListTrac] Discovered ${allListings.length} listings from ListTrac API`);
     
     return allListings.map((listing) => ({
       mlsNumber: listing.mlsNumber || "",
