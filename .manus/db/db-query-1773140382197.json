@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, address, mlsNumber FROM listings WHERE address LIKE '%Test%' OR address LIKE '%Sikes Mill%' ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT id, address, mlsNumber FROM listings WHERE address LIKE '%Test%' OR address LIKE '%Sikes Mill%' ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "address": "1131 Sikes Mill Rd",
+      "mlsNumber": "4346944"
+    },
+    {
+      "id": "30001",
+      "address": "Test Address",
+      "mlsNumber": "NULL"
+    },
+    {
+      "id": "60001",
+      "address": "Test Address",
+      "mlsNumber": ""
+    },
+    {
+      "id": "60005",
+      "address": "1131 Sikes Mill Road",
+      "mlsNumber": "4346944"
+    },
+    {
+      "id": "90001",
+      "address": "Test Address",
+      "mlsNumber": "NULL"
+    },
+    {
+      "id": "90002",
+      "address": "Test Address",
+      "mlsNumber": "NULL"
+    },
+    {
+      "id": "120001",
+      "address": "Test Address",
+      "mlsNumber": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\taddress\tmlsNumber\n1\t1131 Sikes Mill Rd\t4346944\n30001\tTest Address\tNULL\n60001\tTest Address\t\n60005\t1131 Sikes Mill Road\t4346944\n90001\tTest Address\tNULL\n90002\tTest Address\tNULL\n120001\tTest Address\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 63
+}
