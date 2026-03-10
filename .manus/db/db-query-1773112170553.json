@@ -1,0 +1,80 @@
+{
+  "query": "SELECT id, address, mlsNumber, listDate, status FROM listings WHERE status IN ('Active', 'Under Contract') AND (listDate IS NULL OR YEAR(listDate) < 2000) ORDER BY listDate;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT id, address, mlsNumber, listDate, status FROM listings WHERE status IN ('Active', 'Under Contract') AND (listDate IS NULL OR YEAR(listDate) < 2000) ORDER BY listDate;",
+  "rows": [
+    {
+      "id": "1",
+      "address": "1131 Sikes Mill Rd",
+      "mlsNumber": "4346944",
+      "listDate": "NULL",
+      "status": "Active"
+    },
+    {
+      "id": "30001",
+      "address": "Test Address",
+      "mlsNumber": "NULL",
+      "listDate": "NULL",
+      "status": "Active"
+    },
+    {
+      "id": "60001",
+      "address": "Test Address",
+      "mlsNumber": "",
+      "listDate": "NULL",
+      "status": "Active"
+    },
+    {
+      "id": "60002",
+      "address": "7416 Hartsfield Drive",
+      "mlsNumber": "4342358",
+      "listDate": "NULL",
+      "status": "Active"
+    },
+    {
+      "id": "60003",
+      "address": "13002 Butters Way #44",
+      "mlsNumber": "4336731",
+      "listDate": "NULL",
+      "status": "Active"
+    },
+    {
+      "id": "60004",
+      "address": "00 Stratton Farm Road",
+      "mlsNumber": "4222460",
+      "listDate": "NULL",
+      "status": "Active"
+    },
+    {
+      "id": "60005",
+      "address": "1131 Sikes Mill Road",
+      "mlsNumber": "4346944",
+      "listDate": "NULL",
+      "status": "Active"
+    },
+    {
+      "id": "60006",
+      "address": "11230 Mallard Crossing Drive",
+      "mlsNumber": "4341869",
+      "listDate": "NULL",
+      "status": "Active"
+    },
+    {
+      "id": "60007",
+      "address": "11058 Argosy Drive",
+      "mlsNumber": "4311448",
+      "listDate": "NULL",
+      "status": "Active"
+    },
+    {
+      "id": "60008",
+      "address": "181 Jeter Street",
+      "mlsNumber": "4304524",
+      "listDate": "NULL",
+      "status": "Active"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\taddress\tmlsNumber\tlistDate\tstatus\n1\t1131 Sikes Mill Rd\t4346944\tNULL\tActive\n30001\tTest Address\tNULL\tNULL\tActive\n60001\tTest Address\t\tNULL\tActive\n60002\t7416 Hartsfield Drive\t4342358\tNULL\tActive\n60003\t13002 Butters Way #44\t4336731\tNULL\tActive\n60004\t00 Stratton Farm Road\t4222460\tNULL\tActive\n60005\t1131 Sikes Mill Road\t4346944\tNULL\tActive\n60006\t11230 Mallard Crossing Drive\t4341869\tNULL\tActive\n60007\t11058 Argosy Drive\t4311448\tNULL\tActive\n60008\t181 Jeter Street\t4304524\tNULL\tActive\n",
+  "stderr": "",
+  "execution_time_ms": 344
+}

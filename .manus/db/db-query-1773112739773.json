@@ -1,0 +1,14 @@
+{
+  "query": "SELECT COUNT(*) as total_records, COUNT(DISTINCT listingId) as listings_with_data FROM weekly_stats WHERE listtracViews > 0;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT COUNT(*) as total_records, COUNT(DISTINCT listingId) as listings_with_data FROM weekly_stats WHERE listtracViews > 0;",
+  "rows": [
+    {
+      "total_records": "84",
+      "listings_with_data": "8"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_records\tlistings_with_data\n84\t8\n",
+  "stderr": "",
+  "execution_time_ms": 373
+}

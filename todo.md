@@ -188,3 +188,12 @@
 - [x] Ensure all platform data (Zillow, Realtor, MLS, OneHome, Trulia, Other) displays (not just zeros)
 - [x] Add "Beyond" row for older data aggregation (shows total for all weeks beyond last 4)
 - [x] Form auto-populates correctly after sync with all 6 platform fields
+
+## Round 15 — Historical Data Backfill & Auto-Sync
+- [x] Backfill historical weekly_stats for all existing listings from their list dates (108 records created)
+- [x] Detect list dates from ListTrac API (all 8 listings detected successfully)
+- [ ] Add auto-sync on new listing creation to pull full history from list date
+- [ ] Add week-over-week comparison column to history table
+- [ ] Add bulk "Sync All" button to Active Listings page (syncs all active + under contract)
+- [ ] Add framework for scheduled Monday 8 AM ET sync (code in place, not activated)
+- [x] Test backfill works for Butters Way (1/15 to today = 4,343 total views)
