@@ -79,6 +79,8 @@ export default function AdminListings() {
     );
   }
 
+  const lastSyncTime = allStats?.[0]?.updatedAt ? new Date(allStats[0].updatedAt).toLocaleString() : "Never";
+
   return (
     <div className="p-8">
       {/* Header */}
