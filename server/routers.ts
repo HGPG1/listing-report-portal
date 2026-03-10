@@ -116,6 +116,18 @@ const listingsRouter = router({
         const token = nanoid(48);
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
         await createMagicLink({ listingId: newListing.id, token, expiresAt });
+        
+        // Auto-sync full history from ListTrac if MLS number is provided
+        if (input.mlsNumber) {
+          try {
+            console.log(`[Listings.create] Auto-syncing new listing ${input.mlsNumber}...`);
+            await syncSingleListing(newListing.id, -1); // -1 = all-time
+            console.log(`[Listings.create] Auto-sync completed for ${input.mlsNumber}`);
+          } catch (error) {
+            console.error(`[Listings.create] Auto-sync failed for ${input.mlsNumber}:`, error);
+            // Don't throw - listing creation should succeed even if sync fails
+          }
+        }
       }
       return { success: true };
     }),

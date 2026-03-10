@@ -638,23 +638,29 @@ export default function AdminListingEdit({ id }: Props) {
                     <table className="w-full text-sm font-body">
                       <thead>
                         <tr className="border-b border-[#D1D9DF]">
-                          {["Week Of", "Zillow", "Realtor", "MLS", "OneHome", "Trulia", "Other"].map(h => (
+                          {["Week Of", "Zillow", "Realtor", "MLS", "OneHome", "Trulia", "Other", "Change %"].map(h => (
                             <th key={h} className="text-left py-2 pr-4 text-xs font-heading text-[#A0B2C2] uppercase tracking-wider">{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {lastFourWeeks.map(s => {
+                        {lastFourWeeks.map((s, idx) => {
                           const weekStart = new Date(s.weekOf);
+                          const currentTotal = (s.zillowListtracViews ?? 0) + (s.realtorListtracViews ?? 0) + (s.mlsListtracViews ?? 0) + (s.oneHomeListtracViews ?? 0) + (s.truliaListtracViews ?? 0) + (s.otherSourcesListtracViews ?? 0);
+                          const prevWeek = lastFourWeeks[idx + 1];
+                          const prevTotal = prevWeek ? (prevWeek.zillowListtracViews ?? 0) + (prevWeek.realtorListtracViews ?? 0) + (prevWeek.mlsListtracViews ?? 0) + (prevWeek.oneHomeListtracViews ?? 0) + (prevWeek.truliaListtracViews ?? 0) + (prevWeek.otherSourcesListtracViews ?? 0) : 0;
+                          const changePercent = prevTotal > 0 ? parseFloat(((currentTotal - prevTotal) / prevTotal * 100).toFixed(1)) : 0;
+                          const isPositive = changePercent >= 0;
                           return (
                             <tr key={s.id} className="border-b border-[#f5f7f9] hover:bg-[#f5f7f9]">
-                              <td className="py-2 pr-4 text-[#2A384C] font-semibold">Week of {format(weekStart, "MMM d")}</td>
+                              <td className="py-2 pr-4 text-[#2A384C] font-semibold">Week of {format(weekStart, "MMM d, yyyy")}</td>
                               <td className="py-2 pr-4 text-[#2A384C]">{(s.zillowListtracViews ?? 0).toLocaleString()}</td>
                               <td className="py-2 pr-4 text-[#2A384C]">{(s.realtorListtracViews ?? 0).toLocaleString()}</td>
                               <td className="py-2 pr-4 text-[#2A384C]">{(s.mlsListtracViews ?? 0).toLocaleString()}</td>
                               <td className="py-2 pr-4 text-[#2A384C]">{(s.oneHomeListtracViews ?? 0).toLocaleString()}</td>
                               <td className="py-2 pr-4 text-[#2A384C]">{(s.truliaListtracViews ?? 0).toLocaleString()}</td>
                               <td className="py-2 pr-4 text-[#2A384C]">{(s.otherSourcesListtracViews ?? 0).toLocaleString()}</td>
+                              <td className={`py-2 pr-4 font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>{isPositive ? '+' : ''}{changePercent}%</td>
                             </tr>
                           );
                         })}

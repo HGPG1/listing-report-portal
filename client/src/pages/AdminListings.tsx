@@ -23,12 +23,13 @@ export default function AdminListings() {
   const autoSyncMutation = trpc.listtrac.autoSync.useMutation();
   const utils = trpc.useUtils();
 
-  const handleSyncAll = async () => {
+  const handleSyncAll = async (daysBack: number = 7) => {
     try {
       console.log("[AdminListings] Sync button clicked, calling mutation...");
-      await syncAllMutation.mutateAsync({ daysBack: 7 });
+      await syncAllMutation.mutateAsync({ daysBack });
       console.log("[AdminListings] Mutation completed successfully");
-      toast.success("All listings synced from ListTrac");
+      const label = daysBack === -1 ? "all-time" : `${daysBack}-day`;
+      toast.success(`All listings synced (${label}) from ListTrac`);
       // Refetch all stats after sync
       await utils.listings.getAllWithStats.refetch();
     } catch (error) {
@@ -101,10 +102,18 @@ export default function AdminListings() {
           </Button>
           <Button
             className="bg-[#4A6080] hover:bg-[#3A5070] text-white font-heading tracking-wide"
-            onClick={handleSyncAll}
+            onClick={() => handleSyncAll(7)}
             disabled={syncAllMutation.isPending}
           >
             {syncAllMutation.isPending ? "Syncing..." : "Sync Metrics"}
+          </Button>
+          <Button
+            className="bg-[#4A6080] hover:bg-[#3A5070] text-white font-heading tracking-wide"
+            onClick={() => handleSyncAll(-1)}
+            disabled={syncAllMutation.isPending}
+            title="Sync all-time data for all listings"
+          >
+            {syncAllMutation.isPending ? "Syncing..." : "Sync All Time"}
           </Button>
           {archivedListings.length > 0 && (
             <Button

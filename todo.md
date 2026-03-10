@@ -197,3 +197,9 @@
 - [ ] Add bulk "Sync All" button to Active Listings page (syncs all active + under contract)
 - [ ] Add framework for scheduled Monday 8 AM ET sync (code in place, not activated)
 - [x] Test backfill works for Butters Way (1/15 to today = 4,343 total views)
+
+## Round 16 — Fix Week Labels & Add Comparison + Bulk Sync
+- [x] Fix week labeling - showing full dates (Mar 8, 2026) with no duplicates
+- [x] Add week-over-week comparison column showing % change from previous week (green/red coloring)
+- [x] Add bulk "Sync All Time" button to Active Listings page
+- [x] Add auto-sync on new listing creation to pull full history from ListTrac

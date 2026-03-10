@@ -1,0 +1,75 @@
+{
+  "query": "SELECT id, weekOf, listtracViews FROM weekly_stats WHERE listingId = 60003 ORDER BY weekOf DESC LIMIT 15;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT id, weekOf, listtracViews FROM weekly_stats WHERE listingId = 60003 ORDER BY weekOf DESC LIMIT 15;",
+  "rows": [
+    {
+      "id": "210055",
+      "weekOf": "2026-03-09 00:00:00",
+      "listtracViews": "4343"
+    },
+    {
+      "id": "150003",
+      "weekOf": "2026-03-08 05:00:00",
+      "listtracViews": "247"
+    },
+    {
+      "id": "210001",
+      "weekOf": "2026-03-08 00:00:00",
+      "listtracViews": "4351"
+    },
+    {
+      "id": "210054",
+      "weekOf": "2026-03-02 00:00:00",
+      "listtracViews": "4343"
+    },
+    {
+      "id": "60002",
+      "weekOf": "2026-03-01 05:00:00",
+      "listtracViews": "462"
+    },
+    {
+      "id": "90001",
+      "weekOf": "2026-03-01 00:00:00",
+      "listtracViews": "365"
+    },
+    {
+      "id": "210053",
+      "weekOf": "2026-02-23 00:00:00",
+      "listtracViews": "4045"
+    },
+    {
+      "id": "210052",
+      "weekOf": "2026-02-16 00:00:00",
+      "listtracViews": "3510"
+    },
+    {
+      "id": "210051",
+      "weekOf": "2026-02-09 00:00:00",
+      "listtracViews": "3007"
+    },
+    {
+      "id": "210050",
+      "weekOf": "2026-02-02 00:00:00",
+      "listtracViews": "2497"
+    },
+    {
+      "id": "210049",
+      "weekOf": "2026-01-26 00:00:00",
+      "listtracViews": "1952"
+    },
+    {
+      "id": "210048",
+      "weekOf": "2026-01-19 00:00:00",
+      "listtracViews": "1196"
+    },
+    {
+      "id": "210047",
+      "weekOf": "2026-01-12 00:00:00",
+      "listtracViews": "668"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tweekOf\tlisttracViews\n210055\t2026-03-09 00:00:00\t4343\n150003\t2026-03-08 05:00:00\t247\n210001\t2026-03-08 00:00:00\t4351\n210054\t2026-03-02 00:00:00\t4343\n60002\t2026-03-01 05:00:00\t462\n90001\t2026-03-01 00:00:00\t365\n210053\t2026-02-23 00:00:00\t4045\n210052\t2026-02-16 00:00:00\t3510\n210051\t2026-02-09 00:00:00\t3007\n210050\t2026-02-02 00:00:00\t2497\n210049\t2026-01-26 00:00:00\t1952\n210048\t2026-01-19 00:00:00\t1196\n210047\t2026-01-12 00:00:00\t668\n",
+  "stderr": "",
+  "execution_time_ms": 382
+}
