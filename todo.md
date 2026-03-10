@@ -209,3 +209,11 @@
 - [x] Update sync logic to map weekly records to their corresponding period
 - [x] Remove week-over-week comparison (not applicable for periods)
 - [x] Test display with Butters Way and verify correct data shows for each period
+
+## Round 18 — Complete Refactor: Single Button Sync All 3 Periods
+- [x] Phase 1: Add syncPeriod enum field to schema and run pnpm db:push
+- [x] Phase 2: Update listtrac.ts syncSingleListing() to loop through all 3 periods
+- [x] Phase 3: Update routers.ts to remove daysBack parameter
+- [x] Phase 4: Update AdminListingEdit.tsx to show single Sync All button
+- [x] Phase 5: Test sync on Butters Way, verify 3 records created (all 3 periods showing correctly)
+- [x] Phase 6: History table fixed to use syncPeriod field instead of date-based logic

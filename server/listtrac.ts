@@ -272,9 +272,8 @@ async function getListingMetrics(
 }
 
 // ─── Sync Functions ─────────────────────────────────────────────────────────
-export async function syncSingleListing(listingId: number, daysBack: number = 7): Promise<ListingMetricsData> {
-  const daysLabel = daysBack === -1 ? "life of listing" : `last ${daysBack} days`;
-  console.log(`[ListTrac] Starting sync for single listing ${listingId} (${daysLabel})`);
+export async function syncSingleListing(listingId: number): Promise<{ sevenDay: ListingMetricsData; thirtyDay: ListingMetricsData; lifetime: ListingMetricsData }> {
+  console.log(`[ListTrac] Starting sync for listing ${listingId} (all 3 periods)`);
   
   const db = await getDb();
   if (!db) {
@@ -294,105 +293,97 @@ export async function syncSingleListing(listingId: number, daysBack: number = 7)
       throw new Error(`Listing ${listingId} has no MLS number`);
     }
     
-    // Calculate date range
     const endDate = new Date();
-    let startDate: Date;
+    const syncDate = new Date();
+    syncDate.setHours(0, 0, 0, 0);
     
-    if (daysBack === -1) {
-      // Life of listing: use listing's original list date or go back 5 years
-      const listingListDate = listing[0].listDate ? new Date(listing[0].listDate) : new Date(endDate.getTime() - 5 * 365 * 24 * 60 * 60 * 1000);
-      startDate = listingListDate;
-      console.log(`[ListTrac] Life-of-listing sync: using list date ${listingListDate.toISOString()}`);
-    } else {
-      startDate = new Date(endDate.getTime() - daysBack * 24 * 60 * 60 * 1000);
-    }
+    // Sync all 3 periods
+    const periods = [
+      { label: "7day" as const, daysBack: 7 },
+      { label: "30day" as const, daysBack: 30 },
+      { label: "lifetime" as const, daysBack: -1 },
+    ];
     
-    const startDateStr = startDate.toISOString().split("T")[0]!.replace(/-/g, "");
-    const endDateStr = endDate.toISOString().split("T")[0]!.replace(/-/g, "");
+    const results: { [key: string]: ListingMetricsData } = {};
     
-    console.log(`[ListTrac] Fetching metrics from ${startDateStr} to ${endDateStr}`);
-    
-    // Get metrics for this listing
-    const metrics = await getListingMetrics(token, listing[0].mlsNumber, startDateStr, endDateStr);
-    
-    // Get week start date
-    const weekOf = new Date();
-    weekOf.setDate(weekOf.getDate() - weekOf.getDay()); // Start of week (Sunday)
-    weekOf.setHours(0, 0, 0, 0);
-    
-    // Check if record exists for this week
-    const existing = await db
-      .select()
-      .from(weeklyStats)
-      .where(
-        and(
-          eq(weeklyStats.listingId, listingId),
-          eq(weeklyStats.weekOf, weekOf)
+    for (const period of periods) {
+      let startDate: Date;
+      
+      if (period.daysBack === -1) {
+        // Life of listing: use listing's original list date or go back 5 years
+        startDate = listing[0].listDate ? new Date(listing[0].listDate) : new Date(endDate.getTime() - 5 * 365 * 24 * 60 * 60 * 1000);
+        console.log(`[ListTrac] Syncing ${period.label} for listing ${listingId}: using list date ${startDate.toISOString()}`);
+      } else {
+        startDate = new Date(endDate.getTime() - period.daysBack * 24 * 60 * 60 * 1000);
+        console.log(`[ListTrac] Syncing ${period.label} for listing ${listingId}: last ${period.daysBack} days`);
+      }
+      
+      const startDateStr = startDate.toISOString().split("T")[0]!.replace(/-/g, "");
+      const endDateStr = endDate.toISOString().split("T")[0]!.replace(/-/g, "");
+      
+      // Get metrics for this period
+      const metrics = await getListingMetrics(token, listing[0].mlsNumber, startDateStr, endDateStr);
+      results[period.label] = metrics;
+      
+      // Upsert into database
+      const existing = await db
+        .select()
+        .from(weeklyStats)
+        .where(
+          and(
+            eq(weeklyStats.listingId, listingId),
+            eq(weeklyStats.syncPeriod, period.label)
+          )
         )
-      )
-      .limit(1);
-    
-    // Extract major platform views from metrics
-    const zillowViews = metrics.zillowViews;
-    const realtorViews = metrics.realtorViews;
-    const mlsViews = metrics.mlsViews;
-    const oneHomeViews = metrics.oneHomeViews;
-    const truliaViews = metrics.truliaViews;
-    const otherSourcesViews = metrics.otherSourcesViews;
-    
-    if (existing.length > 0) {
-      // Update existing record
-      await db
-        .update(weeklyStats)
-        .set({
-          listtracViews: metrics.views,
-          listtracInquiries: metrics.inquiries,
-          listtracShares: metrics.shares,
-          listtracFavorites: metrics.favorites,
-          listtracVTourViews: metrics.vTourViews,
-          zillowListtracViews: zillowViews,
-          realtorListtracViews: realtorViews,
-          mlsListtracViews: mlsViews,
-          oneHomeListtracViews: oneHomeViews,
-          truliaListtracViews: truliaViews,
-          otherSourcesListtracViews: otherSourcesViews,
-          platformBreakdown: JSON.stringify(metrics.platformBreakdown),
-          dateRangeStart: startDate,
-          dateRangeEnd: endDate,
-          updatedAt: new Date(),
-        })
-        .where(eq(weeklyStats.id, existing[0].id));
-      console.log(`[ListTrac] Updated existing stats for listing ${listingId}`);
-    } else {
-      // Create new record
-      await db.insert(weeklyStats).values({
-        listingId,
-        weekOf,
+        .limit(1);
+      
+      const recordData = {
+        syncPeriod: period.label,
+        weekOf: syncDate,
         listtracViews: metrics.views,
         listtracInquiries: metrics.inquiries,
         listtracShares: metrics.shares,
         listtracFavorites: metrics.favorites,
         listtracVTourViews: metrics.vTourViews,
-        zillowListtracViews: zillowViews,
-        realtorListtracViews: realtorViews,
-        mlsListtracViews: mlsViews,
-        oneHomeListtracViews: oneHomeViews,
-        truliaListtracViews: truliaViews,
-        otherSourcesListtracViews: otherSourcesViews,
+        zillowListtracViews: metrics.zillowViews,
+        realtorListtracViews: metrics.realtorViews,
+        mlsListtracViews: metrics.mlsViews,
+        oneHomeListtracViews: metrics.oneHomeViews,
+        truliaListtracViews: metrics.truliaViews,
+        otherSourcesListtracViews: metrics.otherSourcesViews,
         platformBreakdown: JSON.stringify(metrics.platformBreakdown),
         dateRangeStart: startDate,
         dateRangeEnd: endDate,
-      });
-      console.log(`[ListTrac] Created new stats for listing ${listingId}`);
+        updatedAt: new Date(),
+      };
+      
+      if (existing.length > 0) {
+        await db
+          .update(weeklyStats)
+          .set(recordData)
+          .where(eq(weeklyStats.id, existing[0].id));
+        console.log(`[ListTrac] Updated ${period.label} stats for listing ${listingId}`);
+      } else {
+        await db.insert(weeklyStats).values({
+          listingId,
+          ...recordData,
+        });
+        console.log(`[ListTrac] Created ${period.label} stats for listing ${listingId}`);
+      }
     }
     
     console.log(`[ListTrac] Single listing sync completed for ${listingId}`);
-    return metrics;
+    return {
+      sevenDay: results["7day"]!,
+      thirtyDay: results["30day"]!,
+      lifetime: results["lifetime"]!,
+    };
   } catch (error) {
     console.error(`[ListTrac] Single listing sync failed:`, error);
     throw error;
   }
 }
+
 
 export async function syncAllListingsFromMLS(daysBack: number = 7): Promise<{ success: boolean; listingsUpdated: number }> {
   const daysLabel = daysBack === -1 ? "life of listing" : `last ${daysBack} days`;
@@ -479,6 +470,7 @@ export async function syncAllListingsFromMLS(daysBack: number = 7): Promise<{ su
           // Insert new record
           await db.insert(weeklyStats).values({
             listingId: listing.id,
+            syncPeriod: daysBack === 7 ? "7day" : daysBack === 30 ? "30day" : "lifetime",
             weekOf: weekOf,
             listtracViews: metrics.views,
             listtracInquiries: metrics.inquiries,

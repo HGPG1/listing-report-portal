@@ -82,7 +82,8 @@ export type InsertMagicLink = typeof magicLinks.$inferInsert;
 export const weeklyStats = mysqlTable("weekly_stats", {
   id: int("id").autoincrement().primaryKey(),
   listingId: int("listingId").notNull().references(() => listings.id, { onDelete: "cascade" }),
-  weekOf: timestamp("weekOf").notNull(), // Monday of the week
+  syncPeriod: mysqlEnum("syncPeriod", ["7day", "30day", "lifetime"]).notNull(),
+  weekOf: timestamp("weekOf").notNull(), // Date when sync was performed
   zillowViews: int("zillowViews").default(0),
   realtorViews: int("realtorViews").default(0),
   redfinViews: int("redfinViews").default(0),

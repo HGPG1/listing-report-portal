@@ -38,8 +38,9 @@ import { sendWeeklyReportToFub } from "./fub";
 import { runWeeklyEmailJob } from "./cron";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
-import { syncAllZillowListings, syncZillowListing, discoverFeedId, getZillowSyncLogs } from "./zillow";
+// import { syncAllZillowListings, syncZillowListing, discoverFeedId, getZillowSyncLogs } from "./zillow";
 import { syncAllListingsFromMLS, syncSingleListing, ListingMetricsData, discoverListingsFromListTrac, autoSyncListingsFromListTrac } from "./listtrac";
+// Zillow integration disabled — using ListTrac instead
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
@@ -121,7 +122,7 @@ const listingsRouter = router({
         if (input.mlsNumber) {
           try {
             console.log(`[Listings.create] Auto-syncing new listing ${input.mlsNumber}...`);
-            await syncSingleListing(newListing.id, -1); // -1 = all-time
+            await syncSingleListing(newListing.id); // Auto-sync all 3 periods
             console.log(`[Listings.create] Auto-sync completed for ${input.mlsNumber}`);
           } catch (error) {
             console.error(`[Listings.create] Auto-sync failed for ${input.mlsNumber}:`, error);
@@ -261,7 +262,7 @@ const statsRouter = router({
         totalImpressions: input.totalImpressions,
         totalVideoViews: input.truliaListtracViews,
         totalShowings: input.totalShowings,
-      };
+      } as any;
       await upsertWeeklyStats(mappedInput);
       return { success: true };
     }),
@@ -554,33 +555,8 @@ const analyticsRouter = router({
 });
 
 // ─── Zillow Router ──────────────────────────────────────────────────────────
-const zillowRouter = router({
-  // Discover feed ID (Canopy MLS)
-  getFeedId: adminProcedure.query(async () => {
-    const { feedId, error, httpStatus, responseBody } = await discoverFeedId();
-    return { feedId, error, httpStatus, responseBody };
-  }),
-
-  // Sync all active listings
-  syncAll: adminProcedure.mutation(async () => {
-    const result = await syncAllZillowListings();
-    return result;
-  }),
-
-  // Sync a single listing by ID
-  syncListing: adminProcedure
-    .input(z.object({ listingId: z.number(), mlsNumber: z.string(), feedId: z.number() }))
-    .mutation(async ({ input }) => {
-      return syncZillowListing(input.listingId, input.mlsNumber, input.feedId);
-    }),
-
-  // Get sync logs for a listing (or all listings)
-  getSyncLogs: adminProcedure
-    .input(z.object({ listingId: z.number().optional(), limit: z.number().default(20) }))
-    .query(async ({ input }) => {
-      return getZillowSyncLogs(input.listingId, input.limit);
-    }),
-});
+// Zillow integration disabled — using ListTrac instead
+// const zillowRouter = router({...});
 
 // ─── App Router ───────────────────────────────────────────────────────────────
 export const appRouter = router({
@@ -600,7 +576,7 @@ export const appRouter = router({
   offers: offersRouter,
   email: emailRouter,
   analytics: analyticsRouter,
-  zillow: zillowRouter,
+  // zillow: zillowRouter, // Disabled — using ListTrac
   listtrac: router({
     syncAll: protectedProcedure
       .input(z.object({ daysBack: z.number().optional() }))
@@ -616,11 +592,11 @@ export const appRouter = router({
         }
       }),
     syncListing: protectedProcedure
-      .input(z.object({ listingId: z.number(), daysBack: z.number().optional() }))
+      .input(z.object({ listingId: z.number() }))
       .mutation(async ({ input }) => {
         try {
           console.log(`[Router] ListTrac single listing sync mutation called for listing ${input.listingId}`);
-          const result = await syncSingleListing(input.listingId, input.daysBack ?? 7);
+          const result = await syncSingleListing(input.listingId);
           console.log(`[Router] ListTrac single listing sync completed for ${input.listingId}`);
           return result;
         } catch (error) {

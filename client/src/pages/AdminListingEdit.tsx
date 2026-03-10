@@ -94,15 +94,10 @@ export default function AdminListingEdit({ id }: Props) {
       toast.success(`${vars.type === "hero" ? "Hero" : "Agent"} photo uploaded.`);
       setUploadingPhoto(null);
     },
-    onError: (e) => { toast.error(e.message); setUploadingPhoto(null); },
+    onError: (e: any) => { toast.error(e.message); setUploadingPhoto(null); },
   });
-  const zillowSyncMutation = trpc.zillow.syncListing.useMutation({
-    onSuccess: () => {
-      toast.success("Zillow data synced!");
-      utils.listings.getFull.invalidate({ id });
-    },
-    onError: (e) => toast.error(`Sync failed: ${e.message}`),
-  });
+  // Zillow sync disabled — using ListTrac instead
+  // const zillowSyncMutation = trpc.zillow.syncListing.useMutation({...});
   const listTracSyncMutation = trpc.listtrac.syncListing.useMutation({
     onMutate: (vars) => {
       console.log("[UI] ListTrac mutation starting:", vars);
@@ -478,7 +473,7 @@ export default function AdminListingEdit({ id }: Props) {
                       console.log("[UI] Mutation object:", listTracSyncMutation);
                       console.log("[UI] Mutation mutate method:", listTracSyncMutation.mutate);
                       try {
-                        listTracSyncMutation.mutate({ listingId: id, daysBack: timePeriod });
+                        listTracSyncMutation.mutate({ listingId: id });
                       } catch (e) {
                         console.error("[UI] Error calling mutate:", e);
                       }
@@ -492,38 +487,8 @@ export default function AdminListingEdit({ id }: Props) {
                   </Button>
                 </div>
                 
-                {/* Time Period Selector */}
-                <div className="flex gap-2">
-                  {[
-                    { value: 7, label: "7 DAY" },
-                    { value: 14, label: "14 DAY" },
-                    { value: 30, label: "30 DAY" },
-                    { value: -1, label: "ALL TIME" },
-                  ].map(({ value, label }) => (
-                    <button
-                      key={value}
-                      onClick={() => setTimePeriod(value as 7 | 14 | 30 | -1)}
-                      className={`px-3 py-1 rounded-lg text-xs font-heading uppercase tracking-wider transition-colors ${
-                        timePeriod === value
-                          ? "bg-[#2A384C] text-white"
-                          : "bg-[#E8EDF2] text-[#2A384C] hover:bg-[#D1D9DF]"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <Button
-                  onClick={() => {
-                    listTracSyncMutation.mutate({ listingId: id, daysBack: timePeriod });
-                  }}
-                  disabled={listTracSyncMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-heading text-xs tracking-wide"
-                  size="sm"
-                >
-                  <RefreshCw size={13} className="mr-1" />
-                  {listTracSyncMutation.isPending ? "Syncing..." : "Sync Now"}
-                </Button>
+                {/* Sync All Periods */}
+                <p className="text-xs text-[#A0B2C2] mb-2">Syncs all 3 periods (7-day, 30-day, lifetime) at once</p>
               </div>
             </section>
             
@@ -616,21 +581,10 @@ export default function AdminListingEdit({ id }: Props) {
 
             {/* History */}
             {weeklyStats.length > 0 && (() => {
-              // Sort by weekOf descending and group into 3 sync periods
-              const sorted = [...weeklyStats].sort((a, b) => new Date(b.weekOf).getTime() - new Date(a.weekOf).getTime());
-              const today = new Date();
-              const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-              const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-              
-              // Get most recent record for each period (data is cumulative from list date)
-              // Last 7 Days = most recent record (cumulative from 7 days ago to today)
-              const period7day = sorted[0];
-              
-              // Last 30 Days = most recent record from 30 days ago (cumulative from 30 days ago to today)
-              const period30day = sorted.find(s => new Date(s.weekOf) <= thirtyDaysAgo);
-              
-              // Life of Listing = oldest record (cumulative from list date to today)
-              const periodLifetime = sorted[sorted.length - 1];
+              // Get records by syncPeriod (new logic uses syncPeriod field)
+              const period7day = weeklyStats.find(s => s.syncPeriod === '7day');
+              const period30day = weeklyStats.find(s => s.syncPeriod === '30day');
+              const periodLifetime = weeklyStats.find(s => s.syncPeriod === 'lifetime');
               
               const periods = [
                 { label: 'Last 7 Days', data: period7day },

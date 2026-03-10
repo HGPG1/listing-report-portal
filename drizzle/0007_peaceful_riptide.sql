@@ -1,0 +1,1 @@
+ALTER TABLE `weekly_stats` ADD `syncPeriod` enum('7day','30day','lifetime') NOT NULL;

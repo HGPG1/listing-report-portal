@@ -1,0 +1,101 @@
+{
+  "query": "SELECT id, weekOf, listtracViews, zillowListtracViews, realtorListtracViews FROM weekly_stats WHERE listingId = 60003 ORDER BY weekOf DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT id, weekOf, listtracViews, zillowListtracViews, realtorListtracViews FROM weekly_stats WHERE listingId = 60003 ORDER BY weekOf DESC;",
+  "rows": [
+    {
+      "id": "210055",
+      "weekOf": "2026-03-09 00:00:00",
+      "listtracViews": "4343",
+      "zillowListtracViews": "2797",
+      "realtorListtracViews": "393"
+    },
+    {
+      "id": "150003",
+      "weekOf": "2026-03-08 05:00:00",
+      "listtracViews": "247",
+      "zillowListtracViews": "149",
+      "realtorListtracViews": "29"
+    },
+    {
+      "id": "210001",
+      "weekOf": "2026-03-08 00:00:00",
+      "listtracViews": "247",
+      "zillowListtracViews": "149",
+      "realtorListtracViews": "29"
+    },
+    {
+      "id": "210054",
+      "weekOf": "2026-03-02 00:00:00",
+      "listtracViews": "4343",
+      "zillowListtracViews": "2797",
+      "realtorListtracViews": "393"
+    },
+    {
+      "id": "60002",
+      "weekOf": "2026-03-01 05:00:00",
+      "listtracViews": "462",
+      "zillowListtracViews": "0",
+      "realtorListtracViews": "0"
+    },
+    {
+      "id": "90001",
+      "weekOf": "2026-03-01 00:00:00",
+      "listtracViews": "365",
+      "zillowListtracViews": "0",
+      "realtorListtracViews": "0"
+    },
+    {
+      "id": "210053",
+      "weekOf": "2026-02-23 00:00:00",
+      "listtracViews": "4045",
+      "zillowListtracViews": "2613",
+      "realtorListtracViews": "360"
+    },
+    {
+      "id": "210052",
+      "weekOf": "2026-02-16 00:00:00",
+      "listtracViews": "3510",
+      "zillowListtracViews": "2265",
+      "realtorListtracViews": "301"
+    },
+    {
+      "id": "210051",
+      "weekOf": "2026-02-09 00:00:00",
+      "listtracViews": "3007",
+      "zillowListtracViews": "1903",
+      "realtorListtracViews": "244"
+    },
+    {
+      "id": "210050",
+      "weekOf": "2026-02-02 00:00:00",
+      "listtracViews": "2497",
+      "zillowListtracViews": "1528",
+      "realtorListtracViews": "217"
+    },
+    {
+      "id": "210049",
+      "weekOf": "2026-01-26 00:00:00",
+      "listtracViews": "1952",
+      "zillowListtracViews": "1161",
+      "realtorListtracViews": "174"
+    },
+    {
+      "id": "210048",
+      "weekOf": "2026-01-19 00:00:00",
+      "listtracViews": "1196",
+      "zillowListtracViews": "709",
+      "realtorListtracViews": "101"
+    },
+    {
+      "id": "210047",
+      "weekOf": "2026-01-12 00:00:00",
+      "listtracViews": "668",
+      "zillowListtracViews": "352",
+      "realtorListtracViews": "53"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tweekOf\tlisttracViews\tzillowListtracViews\trealtorListtracViews\n210055\t2026-03-09 00:00:00\t4343\t2797\t393\n150003\t2026-03-08 05:00:00\t247\t149\t29\n210001\t2026-03-08 00:00:00\t247\t149\t29\n210054\t2026-03-02 00:00:00\t4343\t2797\t393\n60002\t2026-03-01 05:00:00\t462\t0\t0\n90001\t2026-03-01 00:00:00\t365\t0\t0\n210053\t2026-02-23 00:00:00\t4045\t2613\t360\n210052\t2026-02-16 00:00:00\t3510\t2265\t301\n210051\t2026-02-09 00:00:00\t3007\t1903\t244\n210050\t2026-02-02 00:00:00\t2497\t1528\t217\n210049\t2026-01-26 00:00:00\t1952\t1161\t174\n210048\t2026-01-19 00:00:00\t1196\t709\t101\n210047\t2026-01-12 00:00:00\t668\t352\t53\n",
+  "stderr": "",
+  "execution_time_ms": 380
+}

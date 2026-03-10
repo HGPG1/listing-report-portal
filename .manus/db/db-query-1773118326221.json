@@ -1,0 +1,31 @@
+{
+  "query": "SELECT id, listingId, syncPeriod, weekOf, zillowListtracViews FROM weekly_stats WHERE listingId = 60003 ORDER BY weekOf DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT id, listingId, syncPeriod, weekOf, zillowListtracViews FROM weekly_stats WHERE listingId = 60003 ORDER BY weekOf DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "210079",
+      "listingId": "60003",
+      "syncPeriod": "30day",
+      "weekOf": "2026-03-10 04:00:00",
+      "zillowListtracViews": "1336"
+    },
+    {
+      "id": "210080",
+      "listingId": "60003",
+      "syncPeriod": "lifetime",
+      "weekOf": "2026-03-10 04:00:00",
+      "zillowListtracViews": "2797"
+    },
+    {
+      "id": "210078",
+      "listingId": "60003",
+      "syncPeriod": "7day",
+      "weekOf": "2026-03-10 04:00:00",
+      "zillowListtracViews": "149"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tlistingId\tsyncPeriod\tweekOf\tzillowListtracViews\n210079\t60003\t30day\t2026-03-10 04:00:00\t1336\n210080\t60003\tlifetime\t2026-03-10 04:00:00\t2797\n210078\t60003\t7day\t2026-03-10 04:00:00\t149\n",
+  "stderr": "",
+  "execution_time_ms": 342
+}

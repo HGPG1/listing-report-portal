@@ -178,13 +178,28 @@ export async function getActiveMagicLinkForListing(listingId: number) {
 export async function upsertWeeklyStats(data: InsertWeeklyStat) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const existing = await db.select().from(weeklyStats)
-    .where(and(eq(weeklyStats.listingId, data.listingId), eq(weeklyStats.weekOf, data.weekOf!)))
-    .limit(1);
-  if (existing[0]) {
-    await db.update(weeklyStats).set(data).where(eq(weeklyStats.id, existing[0].id));
+  
+  // Upsert by listingId + syncPeriod (for ListTrac syncs)
+  // If syncPeriod is provided, use it; otherwise use weekOf (for manual entry)
+  if (data.syncPeriod) {
+    const existing = await db.select().from(weeklyStats)
+      .where(and(eq(weeklyStats.listingId, data.listingId), eq(weeklyStats.syncPeriod, data.syncPeriod)))
+      .limit(1);
+    if (existing[0]) {
+      await db.update(weeklyStats).set(data).where(eq(weeklyStats.id, existing[0].id));
+    } else {
+      await db.insert(weeklyStats).values(data);
+    }
   } else {
-    await db.insert(weeklyStats).values(data);
+    // Manual entry: upsert by weekOf
+    const existing = await db.select().from(weeklyStats)
+      .where(and(eq(weeklyStats.listingId, data.listingId), eq(weeklyStats.weekOf, data.weekOf!)))
+      .limit(1);
+    if (existing[0]) {
+      await db.update(weeklyStats).set(data).where(eq(weeklyStats.id, existing[0].id));
+    } else {
+      await db.insert(weeklyStats).values(data);
+    }
   }
 }
 
