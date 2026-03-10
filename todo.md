@@ -217,3 +217,6 @@
 - [x] Phase 4: Update AdminListingEdit.tsx to show single Sync All button
 - [x] Phase 5: Test sync on Butters Way, verify 3 records created (all 3 periods showing correctly)
 - [x] Phase 6: History table fixed to use syncPeriod field instead of date-based logic
+
+## Round 19 — Cleanup Redundant Sync Buttons
+- [x] Remove "Sync Metrics" button from Active Listings page (kept "Sync All Time" instead)

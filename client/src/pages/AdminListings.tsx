@@ -100,13 +100,7 @@ export default function AdminListings() {
           >
             {autoSyncMutation.isPending ? "Discovering..." : "Auto-Sync from ListTrac"}
           </Button>
-          <Button
-            className="bg-[#4A6080] hover:bg-[#3A5070] text-white font-heading tracking-wide"
-            onClick={() => handleSyncAll(7)}
-            disabled={syncAllMutation.isPending}
-          >
-            {syncAllMutation.isPending ? "Syncing..." : "Sync Metrics"}
-          </Button>
+
           <Button
             className="bg-[#4A6080] hover:bg-[#3A5070] text-white font-heading tracking-wide"
             onClick={() => handleSyncAll(-1)}
