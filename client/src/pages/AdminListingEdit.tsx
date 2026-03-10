@@ -527,57 +527,7 @@ export default function AdminListingEdit({ id }: Props) {
               </div>
             )}
 
-            <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
-              <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Enter Weekly Stats</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">Week Of</Label>
-                  <Input type="date" value={weeklyForm.weekOf} onChange={e => setWeeklyForm(f => ({ ...f, weekOf: e.target.value }))} className="mt-1 font-body border-[#D1D9DF]" />
-                </div>
-                {[
-                  { key: "zillowListtracViews", label: "Zillow Views" },
-                  { key: "realtorListtracViews", label: "Realtor.com Views" },
-                  { key: "mlsListtracViews", label: "MLS Views" },
-                  { key: "oneHomeListtracViews", label: "OneHome Views" },
-                  { key: "truliaListtracViews", label: "Trulia Views" },
-                  { key: "otherSourcesListtracViews", label: "Other Sources" },
-                  { key: "totalImpressions", label: "Total Impressions" },
-                  { key: "totalShowings", label: "Total Showings" },
-                ].map(({ key, label }) => (
-                  <div key={key}>
-                    <Label className="font-heading text-xs text-[#2A384C] uppercase tracking-wider">{label}</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={(weeklyForm as any)[key]}
-                      onChange={e => setWeeklyForm(f => ({ ...f, [key]: e.target.value }))}
-                      className="mt-1 font-body border-[#D1D9DF]"
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-end mt-4">
-                <Button
-                  onClick={() => upsertStatsMutation.mutate({
-                    listingId: id,
-                    weekOf: new Date(weeklyForm.weekOf + "T12:00:00"),
-                    zillowListtracViews: parseInt(weeklyForm.zillowListtracViews) || 0,
-                    realtorListtracViews: parseInt(weeklyForm.realtorListtracViews) || 0,
-                    mlsListtracViews: parseInt(weeklyForm.mlsListtracViews) || 0,
-                    oneHomeListtracViews: parseInt(weeklyForm.oneHomeListtracViews) || 0,
-                    truliaListtracViews: parseInt(weeklyForm.truliaListtracViews) || 0,
-                    otherSourcesListtracViews: parseInt(weeklyForm.otherSourcesListtracViews) || 0,
-                    totalImpressions: parseInt(weeklyForm.totalImpressions) || 0,
-                    totalShowings: parseInt(weeklyForm.totalShowings) || 0,
-                  })}
-                  disabled={upsertStatsMutation.isPending}
-                  className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"
-                >
-                  <Save size={15} className="mr-2" />
-                  {upsertStatsMutation.isPending ? "Saving..." : "Save Stats"}
-                </Button>
-              </div>
-            </section>
+
 
             {/* History */}
             {weeklyStats.length > 0 && (() => {
