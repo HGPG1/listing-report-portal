@@ -591,10 +591,9 @@ export default function AdminListingEdit({ id }: Props) {
         {/* ── Showings Tab ── */}
         <TabsContent value="showings">
           <div className="space-y-6">
-            {showingRequests && showingRequests.length > 0 && (
             <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider">ShowingTime Requests ({showingRequests.length})</h3>
+                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider">ShowingTime Requests ({showingRequests?.length ?? 0})</h3>
                 <Button
                   onClick={() => syncShowingTimeEmailsMutation.mutate()}
                   disabled={syncShowingTimeEmailsMutation.isPending}
@@ -605,6 +604,7 @@ export default function AdminListingEdit({ id }: Props) {
                   {syncShowingTimeEmailsMutation.isPending ? "Syncing..." : "Sync Emails"}
                 </Button>
               </div>
+              {showingRequests && showingRequests.length > 0 ? (
                 <div className="space-y-3">
                   {showingRequests.map((req: any) => (
                     <div key={req.id} className="flex items-start justify-between p-4 bg-[#f5f7f9] rounded-lg">
@@ -622,13 +622,15 @@ export default function AdminListingEdit({ id }: Props) {
                         </div>
                         {req.buyerName && <p className="font-body text-xs text-[#A0B2C2]">Buyer: {req.buyerName}</p>}
                         {req.listingAgent && <p className="font-body text-xs text-[#A0B2C2]">Agent: {req.listingAgent}</p>}
-                        {req.feedback && <p className="font-body text-xs text-[#2A384C] mt-1 italic">Feedback: \"{req.feedback}\"</p>}
+                        {req.feedback && <p className="font-body text-xs text-[#2A384C] mt-1 italic">Feedback: "{req.feedback}"</p>}
                       </div>
                     </div>
                   ))}
                 </div>
-              </section>
-            )}
+              ) : (
+                <p className="text-sm text-[#A0B2C2] italic">No ShowingTime requests yet. Click "Sync Emails" to fetch from your inbox.</p>
+              )}
+            </section>
             
             <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
               <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">Log a Showing</h3>
@@ -677,15 +679,21 @@ export default function AdminListingEdit({ id }: Props) {
                 <div className="space-y-3">
                   {showings.map(s => (
                     <div key={s.id} className="flex items-start justify-between p-4 bg-[#f5f7f9] rounded-lg">
-                      <div>
-                        <p className="font-heading text-sm text-[#2A384C]">{format(new Date(s.showingDate), "MMMM d, yyyy")}</p>
-                        {s.buyerAgentName && <p className="font-body text-xs text-[#A0B2C2] mt-0.5">Agent: {s.buyerAgentName}</p>}
-                        {s.starRating && <p className="font-body text-xs text-[#A0B2C2]">Rating: {"★".repeat(s.starRating)}{"☆".repeat(5 - s.starRating)}</p>}
+                      <div className="flex-1">
+                        <p className="font-heading text-sm text-[#2A384C]">{format(new Date(s.showingDate), "MMM d, yyyy")}</p>
+                        {s.buyerAgentName && <p className="font-body text-xs text-[#A0B2C2]">Agent: {s.buyerAgentName}</p>}
+                        {s.starRating && <p className="font-body text-xs text-[#A0B2C2]">Rating: {s.starRating}/5</p>}
                         {s.feedbackSummary && <p className="font-body text-xs text-[#2A384C] mt-1 italic">"{s.feedbackSummary}"</p>}
                       </div>
-                      <button onClick={() => deleteShowingMutation.mutate({ id: s.id })} className="text-[#A0B2C2] hover:text-red-500 transition-colors ml-4">
+                      <Button
+                        onClick={() => deleteShowingMutation.mutate({ id: s.id })}
+                        disabled={deleteShowingMutation.isPending}
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-600 hover:text-red-800"
+                      >
                         <Trash2 size={14} />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
