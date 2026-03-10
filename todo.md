@@ -180,3 +180,11 @@
 - [x] Change ALL TIME button to pass special value (-1) for unlimited history
 - [x] Update date range calculation to use listing's original list date when available (5-year fallback)
 - [x] Test ALL TIME sync pulls complete listing history from ListTrac (3/10/2021 to 3/9/2026 = 5 years)
+
+## Round 14 — Fix Weekly Stats History Display
+- [x] Investigate ListTrac API to determine if it returns weekly or cumulative data (CUMULATIVE)
+- [x] Check database to see what weekly_stats records actually exist for each listing (4 records per listing)
+- [x] Fix history table to show last 4 weeks with proper Sunday-based week labels ("Week of Mar 8" format)
+- [x] Ensure all platform data (Zillow, Realtor, MLS, OneHome, Trulia, Other) displays (not just zeros)
+- [x] Add "Beyond" row for older data aggregation (shows total for all weeks beyond last 4)
+- [x] Form auto-populates correctly after sync with all 6 platform fields

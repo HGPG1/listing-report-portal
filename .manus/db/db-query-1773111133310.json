@@ -1,0 +1,66 @@
+{
+  "query": "SELECT id, listingId, weekOf, zillowListtracViews, realtorListtracViews, mlsListtracViews, oneHomeListtracViews, truliaListtracViews, otherSourcesListtracViews, listtracViews, dateRangeStart, dateRangeEnd FROM weekly_stats WHERE listingId = 60003 ORDER BY weekOf DESC LIMIT 15;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT id, listingId, weekOf, zillowListtracViews, realtorListtracViews, mlsListtracViews, oneHomeListtracViews, truliaListtracViews, otherSourcesListtracViews, listtracViews, dateRangeStart, dateRangeEnd FROM weekly_stats WHERE listingId = 60003 ORDER BY weekOf DESC LIMIT 15;",
+  "rows": [
+    {
+      "id": "150003",
+      "listingId": "60003",
+      "weekOf": "2026-03-08 05:00:00",
+      "zillowListtracViews": "0",
+      "realtorListtracViews": "0",
+      "mlsListtracViews": "0",
+      "oneHomeListtracViews": "0",
+      "truliaListtracViews": "0",
+      "otherSourcesListtracViews": "0",
+      "listtracViews": "4345",
+      "dateRangeStart": "2025-03-09 16:09:58",
+      "dateRangeEnd": "2026-03-09 16:09:58"
+    },
+    {
+      "id": "210001",
+      "listingId": "60003",
+      "weekOf": "2026-03-08 00:00:00",
+      "zillowListtracViews": "149",
+      "realtorListtracViews": "29",
+      "mlsListtracViews": "46",
+      "oneHomeListtracViews": "7",
+      "truliaListtracViews": "0",
+      "otherSourcesListtracViews": "16",
+      "listtracViews": "247",
+      "dateRangeStart": "2026-03-03 02:46:44",
+      "dateRangeEnd": "2026-03-10 02:46:44"
+    },
+    {
+      "id": "60002",
+      "listingId": "60003",
+      "weekOf": "2026-03-01 05:00:00",
+      "zillowListtracViews": "0",
+      "realtorListtracViews": "0",
+      "mlsListtracViews": "0",
+      "oneHomeListtracViews": "0",
+      "truliaListtracViews": "0",
+      "otherSourcesListtracViews": "0",
+      "listtracViews": "462",
+      "dateRangeStart": "2026-02-27 21:23:42",
+      "dateRangeEnd": "2026-03-06 21:23:42"
+    },
+    {
+      "id": "90001",
+      "listingId": "60003",
+      "weekOf": "2026-03-01 00:00:00",
+      "zillowListtracViews": "0",
+      "realtorListtracViews": "0",
+      "mlsListtracViews": "0",
+      "oneHomeListtracViews": "0",
+      "truliaListtracViews": "0",
+      "otherSourcesListtracViews": "0",
+      "listtracViews": "365",
+      "dateRangeStart": "2026-02-28 03:02:52",
+      "dateRangeEnd": "2026-03-07 03:02:52"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tlistingId\tweekOf\tzillowListtracViews\trealtorListtracViews\tmlsListtracViews\toneHomeListtracViews\ttruliaListtracViews\totherSourcesListtracViews\tlisttracViews\tdateRangeStart\tdateRangeEnd\n150003\t60003\t2026-03-08 05:00:00\t0\t0\t0\t0\t0\t0\t4345\t2025-03-09 16:09:58\t2026-03-09 16:09:58\n210001\t60003\t2026-03-08 00:00:00\t149\t29\t46\t7\t0\t16\t247\t2026-03-03 02:46:44\t2026-03-10 02:46:44\n60002\t60003\t2026-03-01 05:00:00\t0\t0\t0\t0\t0\t0\t462\t2026-02-27 21:23:42\t2026-03-06 21:23:42\n90001\t60003\t2026-03-01 00:00:00\t0\t0\t0\t0\t0\t0\t365\t2026-02-28 03:02:52\t2026-03-07 03:02:52\n",
+  "stderr": "",
+  "execution_time_ms": 352
+}

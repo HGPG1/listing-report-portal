@@ -615,36 +615,66 @@ export default function AdminListingEdit({ id }: Props) {
             </section>
 
             {/* History */}
-            {weeklyStats.length > 0 && (
-              <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
-                <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">History</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm font-body">
-                    <thead>
-                      <tr className="border-b border-[#D1D9DF]">
-                        {["Week Of", "Zillow", "Realtor", "Redfin", "Website", "Impressions", "Video Views", "Showings"].map(h => (
-                          <th key={h} className="text-left py-2 pr-4 text-xs font-heading text-[#A0B2C2] uppercase tracking-wider">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {weeklyStats.map(s => (
-                        <tr key={s.id} className="border-b border-[#f5f7f9] hover:bg-[#f5f7f9]">
-                          <td className="py-2 pr-4 text-[#2A384C]">{format(new Date(s.weekOf), "MMM d, yyyy")}</td>
-                          <td className="py-2 pr-4 text-[#2A384C]">{(s.zillowViews ?? 0).toLocaleString()}</td>
-                          <td className="py-2 pr-4 text-[#2A384C]">{(s.realtorViews ?? 0).toLocaleString()}</td>
-                          <td className="py-2 pr-4 text-[#2A384C]">{(s.redfinViews ?? 0).toLocaleString()}</td>
-                          <td className="py-2 pr-4 text-[#2A384C]">{(s.websiteViews ?? 0).toLocaleString()}</td>
-                          <td className="py-2 pr-4 text-[#2A384C]">{(s.totalImpressions ?? 0).toLocaleString()}</td>
-                          <td className="py-2 pr-4 text-[#2A384C]">{(s.totalVideoViews ?? 0).toLocaleString()}</td>
-                          <td className="py-2 pr-4 text-[#2A384C]">{(s.totalShowings ?? 0).toLocaleString()}</td>
+            {weeklyStats.length > 0 && (() => {
+              // Sort by weekOf descending and split into last 4 weeks and beyond
+              const sorted = [...weeklyStats].sort((a, b) => new Date(b.weekOf).getTime() - new Date(a.weekOf).getTime());
+              const lastFourWeeks = sorted.slice(0, 4);
+              const beyond = sorted.slice(4);
+              
+              // Calculate beyond totals
+              const beyondTotals = beyond.reduce((acc, s) => ({
+                zillow: acc.zillow + (s.zillowListtracViews ?? 0),
+                realtor: acc.realtor + (s.realtorListtracViews ?? 0),
+                mls: acc.mls + (s.mlsListtracViews ?? 0),
+                oneHome: acc.oneHome + (s.oneHomeListtracViews ?? 0),
+                trulia: acc.trulia + (s.truliaListtracViews ?? 0),
+                other: acc.other + (s.otherSourcesListtracViews ?? 0),
+              }), { zillow: 0, realtor: 0, mls: 0, oneHome: 0, trulia: 0, other: 0 });
+              
+              return (
+                <section className="bg-white rounded-xl border border-[#D1D9DF] p-6">
+                  <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider mb-4">History (Last 4 Weeks + Beyond)</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm font-body">
+                      <thead>
+                        <tr className="border-b border-[#D1D9DF]">
+                          {["Week Of", "Zillow", "Realtor", "MLS", "OneHome", "Trulia", "Other"].map(h => (
+                            <th key={h} className="text-left py-2 pr-4 text-xs font-heading text-[#A0B2C2] uppercase tracking-wider">{h}</th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
+                      </thead>
+                      <tbody>
+                        {lastFourWeeks.map(s => {
+                          const weekStart = new Date(s.weekOf);
+                          return (
+                            <tr key={s.id} className="border-b border-[#f5f7f9] hover:bg-[#f5f7f9]">
+                              <td className="py-2 pr-4 text-[#2A384C] font-semibold">Week of {format(weekStart, "MMM d")}</td>
+                              <td className="py-2 pr-4 text-[#2A384C]">{(s.zillowListtracViews ?? 0).toLocaleString()}</td>
+                              <td className="py-2 pr-4 text-[#2A384C]">{(s.realtorListtracViews ?? 0).toLocaleString()}</td>
+                              <td className="py-2 pr-4 text-[#2A384C]">{(s.mlsListtracViews ?? 0).toLocaleString()}</td>
+                              <td className="py-2 pr-4 text-[#2A384C]">{(s.oneHomeListtracViews ?? 0).toLocaleString()}</td>
+                              <td className="py-2 pr-4 text-[#2A384C]">{(s.truliaListtracViews ?? 0).toLocaleString()}</td>
+                              <td className="py-2 pr-4 text-[#2A384C]">{(s.otherSourcesListtracViews ?? 0).toLocaleString()}</td>
+                            </tr>
+                          );
+                        })}
+                        {beyond.length > 0 && (
+                          <tr className="border-b border-[#D1D9DF] bg-[#f5f7f9] font-semibold">
+                            <td className="py-2 pr-4 text-[#2A384C]">Beyond ({beyond.length} weeks)</td>
+                            <td className="py-2 pr-4 text-[#2A384C]">{beyondTotals.zillow.toLocaleString()}</td>
+                            <td className="py-2 pr-4 text-[#2A384C]">{beyondTotals.realtor.toLocaleString()}</td>
+                            <td className="py-2 pr-4 text-[#2A384C]">{beyondTotals.mls.toLocaleString()}</td>
+                            <td className="py-2 pr-4 text-[#2A384C]">{beyondTotals.oneHome.toLocaleString()}</td>
+                            <td className="py-2 pr-4 text-[#2A384C]">{beyondTotals.trulia.toLocaleString()}</td>
+                            <td className="py-2 pr-4 text-[#2A384C]">{beyondTotals.other.toLocaleString()}</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              );
+            })()}
           </div>
         </TabsContent>
 
