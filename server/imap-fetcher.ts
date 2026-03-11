@@ -3,6 +3,12 @@ import { getDb } from "./db";
 import { showingRequests, listings } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
+function decodeQuotedPrintable(str: string): string {
+  return str
+    .replace(/=\r?\n/g, "") // join soft line breaks
+    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
 function parseShowingTimeEmail(html: string): {
   address?: string;
   mls?: string;
@@ -53,7 +59,7 @@ function parseShowingTimeEmail(html: string): {
   }
 }
 
-export async function fetchShowingTimeEmails(): Promise<{
+export async function fetchShowingTimeEmails(mlsNumber?: string): Promise<{
   fetched: number;
   parsed: number;
   stored: number;
@@ -61,9 +67,10 @@ export async function fetchShowingTimeEmails(): Promise<{
 }> {
   const result = { fetched: 0, parsed: 0, stored: 0, errors: [] as string[] };
 
-  // Read password at runtime, not at module load time
-  const GMAIL_PASSWORD = process.env.GMAIL_APP_PASSWORD;
+  const GMAIL_PASSWORD = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, "");
   const GMAIL_USER = "brian@homegrownpropertygroup.com";
+
+  console.log(`[IMAP] GMAIL_APP_PASSWORD is ${GMAIL_PASSWORD ? "SET (" + GMAIL_PASSWORD.length + " chars)" : "NOT SET"}`);
 
   if (!GMAIL_PASSWORD) {
     result.errors.push("GMAIL_APP_PASSWORD not configured");
@@ -82,173 +89,152 @@ export async function fetchShowingTimeEmails(): Promise<{
 
     imap.on("error", (err: Error) => {
       console.error("[IMAP] Connection error:", err.message);
-      result.errors.push(`IMAP connection error: ${err.message}`);
+      result.errors.push(`IMAP error: ${err.message}`);
       resolve(result);
     });
 
-    imap.on("end", () => {
-      console.log("[IMAP] Connection ended");
-    });
+    // CRITICAL: openBox must be called inside the 'ready' event
+    imap.once("ready", () => {
+      console.log("[IMAP] Connection ready, opening INBOX...");
 
-    imap.openBox("INBOX", false, async (err: Error | null) => {
-      if (err) {
-        console.error("[IMAP] Failed to open INBOX:", err.message);
-        result.errors.push(`Failed to open INBOX: ${err.message}`);
-        imap.end();
-        return resolve(result);
-      }
-
-      console.log("[IMAP] INBOX opened successfully");
-
-      // Search for ShowingTime emails from callcenter@showingtime.com
-      imap.search([["FROM", "callcenter@showingtime.com"]], async (err: Error | null, results: number[]) => {
+      imap.openBox("INBOX", true, (err: Error | null) => {
         if (err) {
-          console.error("[IMAP] Search failed:", err.message);
-          result.errors.push(`Search failed: ${err.message}`);
+          console.error("[IMAP] Failed to open INBOX:", err.message);
+          result.errors.push(`Failed to open INBOX: ${err.message}`);
           imap.end();
           return resolve(result);
         }
 
-        result.fetched = results.length;
-        console.log(`[IMAP] Found ${results.length} ShowingTime emails`);
+        console.log("[IMAP] INBOX opened, searching for ShowingTime emails...");
 
-        if (results.length === 0) {
-          imap.end();
-          return resolve(result);
-        }
+        imap.search([["FROM", "callcenter@showingtime.com"]], async (err: Error | null, results: number[]) => {
+          if (err) {
+            console.error("[IMAP] Search failed:", err.message);
+            result.errors.push(`Search failed: ${err.message}`);
+            imap.end();
+            return resolve(result);
+          }
 
-        // Fetch only the first 50 to avoid overwhelming the system
-        const toFetch = results.slice(0, 50);
-        const f = imap.fetch(toFetch, { bodies: "HEADER.FIELDS (FROM TO SUBJECT DATE) BODY[TEXT]" });
+          result.fetched = results.length;
+          console.log(`[IMAP] Found ${results.length} ShowingTime emails`);
 
-        let processedCount = 0;
+          if (results.length === 0) {
+            imap.end();
+            return resolve(result);
+          }
 
-        f.on("message", (msg) => {
-          let emailBody = "";
-          let emailHeaders: any = {};
+          // Get most recent 50 emails (or filter by MLS if provided)
+          const sortedResults = results.slice().sort((a, b) => b - a);
+          const toFetch = sortedResults.slice(0, 50);
+          const f = imap.fetch(toFetch, { bodies: ["HEADER", "TEXT"], struct: true });
 
-          msg.on("body", (stream, info) => {
-            let data = "";
-            stream.on("data", (chunk) => {
-              data += chunk.toString("utf8");
-            });
-            stream.on("end", () => {
-              if (info.which === "HEADER.FIELDS (FROM TO SUBJECT DATE)") {
-                // Parse headers
-                const lines = data.split("\r\n");
-                lines.forEach((line) => {
-                  const [key, ...valueParts] = line.split(": ");
-                  if (key && valueParts.length > 0) {
-                    emailHeaders[key.toLowerCase()] = valueParts.join(": ");
-                  }
-                });
-              } else if (info.which === "BODY[TEXT]") {
-                emailBody = data;
-              }
-            });
-          });
+          let processedCount = 0;
 
-          msg.on("attributes", async (attrs) => {
-            // After all body parts are read, process the email
-            setTimeout(async () => {
+          f.on("message", (msg) => {
+            let emailBody = "";
+            let emailHeaders: Record<string, string> = {};
+            let bodyStreamsTotal = 0;
+            let bodyStreamsEnded = 0;
+            let msgEnded = false;
+
+            const tryProcess = async () => {
+              if (!msgEnded || bodyStreamsEnded < bodyStreamsTotal) return;
               try {
-                const html = emailBody || "";
-                const showingData = parseShowingTimeEmail(html);
-
+                const decoded = decodeQuotedPrintable(emailBody);
+                const showingData = parseShowingTimeEmail(decoded);
+                console.log(`[IMAP] Email parsed: mls=${showingData?.mls} address=${showingData?.address?.substring(0,30)}`);
                 if (showingData) {
                   result.parsed++;
-
                   try {
                     const db = await getDb();
-                    if (!db) {
-                      result.errors.push("Database connection failed");
-                      return;
-                    }
-
-                    const messageId = emailHeaders["message-id"] || `${showingData.mls}-${showingData.showingTime?.getTime()}`;
-
-                    // Find listing by MLS number
-                    let listingId = 1;
-                    if (showingData.mls) {
-                      try {
-                        const listingResult = await db
-                          .select()
-                          .from(listings)
-                          .where(eq(listings.mlsNumber, showingData.mls))
-                          .limit(1);
-                        if (listingResult.length > 0) {
-                          listingId = listingResult[0].id;
-                        }
-                      } catch (e) {
-                        console.error(`Could not find listing by MLS ${showingData.mls}:`, e);
+                    if (db) {
+                      let listingId: number | null = null;
+                      if (showingData.mls) {
+                        const listingResult = await db.select().from(listings).where(eq(listings.mlsNumber, showingData.mls)).limit(1);
+                        if (listingResult.length > 0) listingId = listingResult[0].id;
+                      }
+                      if (!listingId) {
+                        console.log(`[IMAP] No listing found for MLS ${showingData.mls}, skipping`);
+                      } else {
+                        const insertValues: any = {
+                          listingId,
+                          address: showingData.address || "",
+                          mlsNumber: showingData.mls || null,
+                          listPrice: showingData.listPrice ? showingData.listPrice.replace('$','').replace(/,/g,'') : null,
+                          requestedTime: showingData.showingTime || null,
+                          confirmedTime: null,
+                          timeSlot: null,
+                          buyerName: showingData.buyer || null,
+                          listingAgent: showingData.agent || null,
+                          showingAgent: null,
+                          emailSubject: emailHeaders["subject"] || null,
+                          emailMessageId: (emailHeaders["message-id"] || `${showingData.mls}-${Date.now()}-${Math.random()}`).substring(0, 499),
+                          rawEmailBody: decoded.substring(0, 65535),
+                          feedback: null,
+                          rating: null,
+                        };
+                        await db.insert(showingRequests).values([insertValues]);
+                        result.stored++;
                       }
                     }
-
-                    const values: any = {
-                      listingId: listingId,
-                      address: showingData.address || "",
-                      mlsNumber: showingData.mls,
-                      listPrice: showingData.listPrice,
-                      requestedTime: showingData.showingTime,
-                      confirmedTime: null,
-                      timeSlot: null,
-                      status: "requested",
-                      buyerName: showingData.buyer,
-                      listingAgent: showingData.agent,
-                      showingAgent: null,
-                      emailSubject: emailHeaders["subject"],
-                      emailMessageId: messageId,
-                      rawEmailBody: html,
-                      feedback: null,
-                      rating: null,
-                    };
-
-                    await db.insert(showingRequests).values([values]);
-
-                    result.stored++;
                   } catch (dbErr) {
-                    result.errors.push(`Database error: ${dbErr instanceof Error ? dbErr.message : String(dbErr)}`);
+                    result.errors.push(`DB error: ${dbErr instanceof Error ? dbErr.message : String(dbErr)}`);
                   }
                 }
-
-                processedCount++;
-                if (processedCount === toFetch.length) {
-                  imap.end();
-                  resolve(result);
-                }
               } catch (e) {
-                console.error("Error processing email:", e);
-                processedCount++;
-                if (processedCount === toFetch.length) {
-                  imap.end();
-                  resolve(result);
-                }
+                console.error("[IMAP] Error processing email:", e);
               }
-            }, 100);
+              processedCount++;
+              if (processedCount >= toFetch.length) {
+                imap.end();
+                resolve(result);
+              }
+            };
+
+            msg.on("body", (stream, info) => {
+              bodyStreamsTotal++;
+              let data = "";
+              stream.on("data", (chunk) => { data += chunk.toString("utf8"); });
+              stream.on("end", () => {
+                if (info.which.startsWith("HEADER")) {
+                  data.split("\r\n").forEach((line) => {
+                    const colonIdx = line.indexOf(": ");
+                    if (colonIdx > 0) {
+                      emailHeaders[line.substring(0, colonIdx).toLowerCase()] = line.substring(colonIdx + 2);
+                    }
+                  });
+                } else {
+                  emailBody = data;
+                }
+                bodyStreamsEnded++;
+                tryProcess();
+              });
+            });
+
+            msg.once("end", () => {
+              msgEnded = true;
+              tryProcess();
+            });
           });
-        });
 
-        f.on("error", (err: Error) => {
-          console.error("[IMAP] Fetch error:", err.message);
-          result.errors.push(`Fetch error: ${err.message}`);
-          imap.end();
-          resolve(result);
-        });
+          f.on("error", (err: Error) => {
+            console.error("[IMAP] Fetch error:", err.message);
+            result.errors.push(`Fetch error: ${err.message}`);
+          });
 
-        f.on("end", () => {
-          // Wait a bit for all messages to be processed
-          setTimeout(() => {
-            if (processedCount < toFetch.length) {
-              imap.end();
-              resolve(result);
-            }
-          }, 2000);
+          f.once("end", () => {
+            setTimeout(() => {
+              if (processedCount < toFetch.length) {
+                imap.end();
+                resolve(result);
+              }
+            }, 3000);
+          });
         });
       });
     });
 
-// Connect to IMAP - reads credentials at runtime
-  console.log("[IMAP] Connecting to Gmail IMAP...");
-  imap.connect();
+    console.log("[IMAP] Connecting...");
+    imap.connect();
   });
 }

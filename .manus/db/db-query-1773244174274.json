@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, mlsNumber, address FROM listings; SELECT id, listingId, mlsNumber, address, emailSubject FROM showing_requests LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pxiFczbPMB3enh.8355ba3c6757 --database Ehu7bTPhNqeTg3bUiqUPQK --execute SELECT id, mlsNumber, address FROM listings; SELECT id, listingId, mlsNumber, address, emailSubject FROM showing_requests LIMIT 10;",
+  "rows": [
+    {
+      "id": "60002",
+      "mlsNumber": "4342358",
+      "address": "7416 Hartsfield Drive"
+    },
+    {
+      "id": "60003",
+      "mlsNumber": "4336731",
+      "address": "13002 Butters Way #44"
+    },
+    {
+      "id": "60004",
+      "mlsNumber": "4222460",
+      "address": "00 Stratton Farm Road"
+    },
+    {
+      "id": "60006",
+      "mlsNumber": "4341869",
+      "address": "11230 Mallard Crossing Drive"
+    },
+    {
+      "id": "60007",
+      "mlsNumber": "4311448",
+      "address": "11058 Argosy Drive"
+    },
+    {
+      "id": "60008",
+      "mlsNumber": "4304524",
+      "address": "181 Jeter Street"
+    },
+    {
+      "id": "120002",
+      "mlsNumber": "4346944",
+      "address": "1131 Sikes Mill Road, Monroe, NC 28110"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tmlsNumber\taddress\n60002\t4342358\t7416 Hartsfield Drive\n60003\t4336731\t13002 Butters Way #44\n60004\t4222460\t00 Stratton Farm Road\n60006\t4341869\t11230 Mallard Crossing Drive\n60007\t4311448\t11058 Argosy Drive\n60008\t4304524\t181 Jeter Street\n120002\t4346944\t1131 Sikes Mill Road, Monroe, NC 28110\n",
+  "stderr": "",
+  "execution_time_ms": 56
+}
