@@ -3,9 +3,6 @@ import { getDb } from "./db";
 import { showingRequests, listings } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
-const GMAIL_USER = "brian@homegrownpropertygroup.com";
-const GMAIL_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-
 function parseShowingTimeEmail(html: string): {
   address?: string;
   mls?: string;
@@ -64,6 +61,10 @@ export async function fetchShowingTimeEmails(): Promise<{
 }> {
   const result = { fetched: 0, parsed: 0, stored: 0, errors: [] as string[] };
 
+  // Read password at runtime, not at module load time
+  const GMAIL_PASSWORD = process.env.GMAIL_APP_PASSWORD;
+  const GMAIL_USER = "brian@homegrownpropertygroup.com";
+
   if (!GMAIL_PASSWORD) {
     result.errors.push("GMAIL_APP_PASSWORD not configured");
     return result;
@@ -79,23 +80,37 @@ export async function fetchShowingTimeEmails(): Promise<{
       tlsOptions: { rejectUnauthorized: false },
     });
 
-    // Search in INBOX for ShowingTime emails
+    imap.on("error", (err: Error) => {
+      console.error("[IMAP] Connection error:", err.message);
+      result.errors.push(`IMAP connection error: ${err.message}`);
+      resolve(result);
+    });
+
+    imap.on("end", () => {
+      console.log("[IMAP] Connection ended");
+    });
+
     imap.openBox("INBOX", false, async (err: Error | null) => {
       if (err) {
+        console.error("[IMAP] Failed to open INBOX:", err.message);
         result.errors.push(`Failed to open INBOX: ${err.message}`);
         imap.end();
         return resolve(result);
       }
 
+      console.log("[IMAP] INBOX opened successfully");
+
       // Search for ShowingTime emails from callcenter@showingtime.com
       imap.search([["FROM", "callcenter@showingtime.com"]], async (err: Error | null, results: number[]) => {
         if (err) {
+          console.error("[IMAP] Search failed:", err.message);
           result.errors.push(`Search failed: ${err.message}`);
           imap.end();
           return resolve(result);
         }
 
         result.fetched = results.length;
+        console.log(`[IMAP] Found ${results.length} ShowingTime emails`);
 
         if (results.length === 0) {
           imap.end();
@@ -214,6 +229,7 @@ export async function fetchShowingTimeEmails(): Promise<{
         });
 
         f.on("error", (err: Error) => {
+          console.error("[IMAP] Fetch error:", err.message);
           result.errors.push(`Fetch error: ${err.message}`);
           imap.end();
           resolve(result);
@@ -231,11 +247,8 @@ export async function fetchShowingTimeEmails(): Promise<{
       });
     });
 
-    imap.on("error", (err: Error) => {
-      result.errors.push(`IMAP error: ${err.message}`);
-      resolve(result);
-    });
-
+    // Connect to IMAP
+    console.log("[IMAP] Connecting to Gmail IMAP...");
     imap.connect();
   });
 }
