@@ -247,8 +247,8 @@ export async function fetchShowingTimeEmails(): Promise<{
       });
     });
 
-    // Connect to IMAP
-    console.log("[IMAP] Connecting to Gmail IMAP...");
-    imap.connect();
+// Connect to IMAP - reads credentials at runtime
+  console.log("[IMAP] Connecting to Gmail IMAP...");
+  imap.connect();
   });
 }
