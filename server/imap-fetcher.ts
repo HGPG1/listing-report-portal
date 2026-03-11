@@ -77,6 +77,7 @@ export async function fetchShowingTimeEmails(): Promise<{
       host: "imap.gmail.com",
       port: 993,
       tls: true,
+      tlsOptions: { rejectUnauthorized: false },
     });
 
     // Search in INBOX for ShowingTime emails
@@ -87,8 +88,8 @@ export async function fetchShowingTimeEmails(): Promise<{
         return resolve(result);
       }
 
-      // Search for ShowingTime emails by subject line (more reliable than FROM field)
-      imap.search(["SUBJECT", "CONFIRMED", "SUBJECT", "RESCHEDULE", "SUBJECT", "REQUESTED"], async (err: Error | null, results: number[]) => {
+      // Search for ShowingTime emails from callcenter@showingtime.com
+      imap.search([["FROM", "callcenter@showingtime.com"]], async (err: Error | null, results: number[]) => {
         if (err) {
           result.errors.push(`Search failed: ${err.message}`);
           imap.end();
