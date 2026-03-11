@@ -86,7 +86,8 @@ export async function fetchShowingTimeEmails(): Promise<{
         return resolve(result);
       }
 
-      imap.search(["FROM", "callcenter@showingtime.com"], async (err: Error | null, results: number[]) => {
+      // Search for ShowingTime emails by subject line (more reliable than FROM field)
+      imap.search(["SUBJECT", "CONFIRMED", "SUBJECT", "RESCHEDULE", "SUBJECT", "REQUESTED"], async (err: Error | null, results: number[]) => {
         if (err) {
           result.errors.push(`Search failed: ${err.message}`);
           imap.end();
