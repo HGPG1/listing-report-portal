@@ -12,6 +12,7 @@ import * as nodeCron from "node-cron";
 import { getActiveListingsForCron, getActiveMagicLinkForListing, getFullListingData, logEmail } from "./db";
 import { sendWeeklyReportToFub } from "./fub";
 import { syncAllListingsFromMLS, runListTracTestCall, autoSyncListingsFromListTrac } from "./listtrac";
+import { fetchShowingTimeEmails } from "./imap-fetcher";
 
 // Default: Monday at 8:00 AM. Override with CRON_SCHEDULE env var.
 // Format: seconds minutes hours day-of-month month day-of-week
@@ -20,11 +21,14 @@ const CRON_SCHEDULE = process.env.CRON_SCHEDULE ?? "0 0 8 * * 1";
 const LISTTRAC_CRON_SCHEDULE = process.env.LISTTRAC_CRON_SCHEDULE ?? "0 0 2 * * *";
 // ListTrac Monday discovery: 8 AM Monday (discover new listings + sync all metrics)
 const LISTTRAC_DISCOVERY_SCHEDULE = process.env.LISTTRAC_DISCOVERY_SCHEDULE ?? "0 0 8 * * 1";
+// ShowingTime email sync: 8 AM every day (fetch and parse ShowingTime emails)
+const SHOWINGTIME_SYNC_SCHEDULE = process.env.SHOWINGTIME_SYNC_SCHEDULE ?? "0 0 8 * * *";
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
 let cronJob: nodeCron.ScheduledTask | null = null;
 let listTracCronJob: nodeCron.ScheduledTask | null = null;
 let listTracDiscoveryCronJob: nodeCron.ScheduledTask | null = null;
+let showingTimeCronJob: nodeCron.ScheduledTask | null = null;
 
 export async function runWeeklyEmailJob(): Promise<{ processed: number; errors: number }> {
   console.log("[Cron] Starting weekly email job...");
@@ -178,12 +182,35 @@ export function startCronJob(): void {
   }, 3000);
 }
 
+
+  // Start ShowingTime email sync cron (8 AM every day)
+  if (!showingTimeCronJob && nodeCron.validate(SHOWINGTIME_SYNC_SCHEDULE)) {
+    showingTimeCronJob = nodeCron.schedule(SHOWINGTIME_SYNC_SCHEDULE, async () => {
+      console.log("[ShowingTime Cron] Starting daily email sync...");
+      try {
+        const result = await fetchShowingTimeEmails();
+        console.log(`[ShowingTime Cron] Sync complete: fetched ${result.fetched}, parsed ${result.parsed}, stored ${result.stored}`);
+        if (result.errors.length > 0) {
+          console.error("[ShowingTime Cron] Errors:", result.errors);
+        }
+      } catch (error) {
+        console.error("[ShowingTime Cron] Failed:", error);
+      }
+    }, {
+      timezone: process.env.CRON_TIMEZONE ?? "America/New_York",
+    });
+    console.log(`[ShowingTime Cron] Daily sync scheduled: ${SHOWINGTIME_SYNC_SCHEDULE} (America/New_York)`);
+  }
+
+
 export function stopCronJob(): void {
   cronJob?.stop();
   cronJob = null;
   listTracCronJob?.stop();
   listTracCronJob = null;
   listTracDiscoveryCronJob?.stop();
+  showingTimeCronJob?.stop();
+  showingTimeCronJob = null;
   listTracDiscoveryCronJob = null;
   console.log("[Cron] All jobs stopped");
 }

@@ -1,7 +1,8 @@
 import Imap from "imap";
 import { simpleParser } from "mailparser";
 import { getDb } from "./db";
-import { showingRequests } from "../drizzle/schema";
+import { showingRequests, listings } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 const GMAIL_USER = "brian@homegrownpropertygroup.com";
 const GMAIL_PASSWORD = process.env.GMAIL_APP_PASSWORD;
@@ -123,8 +124,25 @@ export async function fetchShowingTimeEmails(): Promise<{
 
                 const messageId = parsed.messageId || `${showingData.mls}-${showingData.showingTime?.getTime()}`;
                 
+                // Find listing by MLS number
+                let listingId = 1;
+                if (showingData.mls) {
+                  try {
+                    const result = await db
+                      .select()
+                      .from(listings)
+                      .where(eq(listings.mlsNumber, showingData.mls))
+                      .limit(1);
+                    if (result.length > 0) {
+                      listingId = result[0].id;
+                    }
+                  } catch (e) {
+                    console.error(`Could not find listing by MLS ${showingData.mls}:`, e);
+                  }
+                }
+                
                 const values: any = {
-                  listingId: 1,
+                  listingId: listingId,
                   address: showingData.address || "",
                   mlsNumber: showingData.mls,
                   listPrice: showingData.listPrice,
