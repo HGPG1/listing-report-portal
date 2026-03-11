@@ -1,5 +1,4 @@
 import Imap from "imap";
-import { simpleParser } from "mailparser";
 import { getDb } from "./db";
 import { showingRequests, listings } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -103,83 +102,131 @@ export async function fetchShowingTimeEmails(): Promise<{
           return resolve(result);
         }
 
-        const f = imap.fetch(results, { bodies: "" });
+        // Fetch only the first 50 to avoid overwhelming the system
+        const toFetch = results.slice(0, 50);
+        const f = imap.fetch(toFetch, { bodies: "HEADER.FIELDS (FROM TO SUBJECT DATE) BODY[TEXT]" });
+
+        let processedCount = 0;
 
         f.on("message", (msg) => {
-          simpleParser(msg as any, async (err: Error | null, parsed: any) => {
-            if (err) {
-              result.errors.push(`Parse error: ${err.message}`);
-              return;
-            }
+          let emailBody = "";
+          let emailHeaders: any = {};
 
-            const html = parsed.html || parsed.text || "";
-            const showingData = parseShowingTimeEmail(html);
+          msg.on("body", (stream, info) => {
+            let data = "";
+            stream.on("data", (chunk) => {
+              data += chunk.toString("utf8");
+            });
+            stream.on("end", () => {
+              if (info.which === "HEADER.FIELDS (FROM TO SUBJECT DATE)") {
+                // Parse headers
+                const lines = data.split("\r\n");
+                lines.forEach((line) => {
+                  const [key, ...valueParts] = line.split(": ");
+                  if (key && valueParts.length > 0) {
+                    emailHeaders[key.toLowerCase()] = valueParts.join(": ");
+                  }
+                });
+              } else if (info.which === "BODY[TEXT]") {
+                emailBody = data;
+              }
+            });
+          });
 
-            if (showingData) {
-              result.parsed++;
-
+          msg.on("attributes", async (attrs) => {
+            // After all body parts are read, process the email
+            setTimeout(async () => {
               try {
-                const db = await getDb();
-                if (!db) {
-                  result.errors.push("Database connection failed");
-                  return;
-                }
+                const html = emailBody || "";
+                const showingData = parseShowingTimeEmail(html);
 
-                const messageId = parsed.messageId || `${showingData.mls}-${showingData.showingTime?.getTime()}`;
-                
-                // Find listing by MLS number
-                let listingId = 1;
-                if (showingData.mls) {
+                if (showingData) {
+                  result.parsed++;
+
                   try {
-                    const result = await db
-                      .select()
-                      .from(listings)
-                      .where(eq(listings.mlsNumber, showingData.mls))
-                      .limit(1);
-                    if (result.length > 0) {
-                      listingId = result[0].id;
+                    const db = await getDb();
+                    if (!db) {
+                      result.errors.push("Database connection failed");
+                      return;
                     }
-                  } catch (e) {
-                    console.error(`Could not find listing by MLS ${showingData.mls}:`, e);
+
+                    const messageId = emailHeaders["message-id"] || `${showingData.mls}-${showingData.showingTime?.getTime()}`;
+
+                    // Find listing by MLS number
+                    let listingId = 1;
+                    if (showingData.mls) {
+                      try {
+                        const listingResult = await db
+                          .select()
+                          .from(listings)
+                          .where(eq(listings.mlsNumber, showingData.mls))
+                          .limit(1);
+                        if (listingResult.length > 0) {
+                          listingId = listingResult[0].id;
+                        }
+                      } catch (e) {
+                        console.error(`Could not find listing by MLS ${showingData.mls}:`, e);
+                      }
+                    }
+
+                    const values: any = {
+                      listingId: listingId,
+                      address: showingData.address || "",
+                      mlsNumber: showingData.mls,
+                      listPrice: showingData.listPrice,
+                      requestedTime: showingData.showingTime,
+                      confirmedTime: null,
+                      timeSlot: null,
+                      status: "requested",
+                      buyerName: showingData.buyer,
+                      listingAgent: showingData.agent,
+                      showingAgent: null,
+                      emailSubject: emailHeaders["subject"],
+                      emailMessageId: messageId,
+                      rawEmailBody: html,
+                      feedback: null,
+                      rating: null,
+                    };
+
+                    await db.insert(showingRequests).values([values]);
+
+                    result.stored++;
+                  } catch (dbErr) {
+                    result.errors.push(`Database error: ${dbErr instanceof Error ? dbErr.message : String(dbErr)}`);
                   }
                 }
-                
-                const values: any = {
-                  listingId: listingId,
-                  address: showingData.address || "",
-                  mlsNumber: showingData.mls,
-                  listPrice: showingData.listPrice,
-                  requestedTime: showingData.showingTime,
-                  confirmedTime: null,
-                  timeSlot: null,
-                  status: "requested",
-                  buyerName: showingData.buyer,
-                  listingAgent: showingData.agent,
-                  showingAgent: null,
-                  emailSubject: null,
-                  emailMessageId: messageId,
-                  rawEmailBody: html,
-                  feedback: null,
-                  rating: null,
-                };
-                
-                await db.insert(showingRequests).values([values]);
 
-                result.stored++;
-              } catch (dbErr) {
-                result.errors.push(`Database error: ${dbErr instanceof Error ? dbErr.message : String(dbErr)}`);
+                processedCount++;
+                if (processedCount === toFetch.length) {
+                  imap.end();
+                  resolve(result);
+                }
+              } catch (e) {
+                console.error("Error processing email:", e);
+                processedCount++;
+                if (processedCount === toFetch.length) {
+                  imap.end();
+                  resolve(result);
+                }
               }
-            }
+            }, 100);
           });
         });
 
         f.on("error", (err: Error) => {
           result.errors.push(`Fetch error: ${err.message}`);
+          imap.end();
+          resolve(result);
         });
 
         f.on("end", () => {
-          imap.end();
-          resolve(result);
+          // Wait a bit for all messages to be processed
+          setTimeout(() => {
+            if (processedCount < toFetch.length) {
+              imap.end();
+              resolve(result);
+            }
+          }, 2000);
         });
       });
     });
