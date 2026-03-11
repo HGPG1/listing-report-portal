@@ -79,9 +79,10 @@ export async function fetchShowingTimeEmails(): Promise<{
       tls: true,
     });
 
-    imap.openBox("INBOX", false, async (err: Error | null) => {
+    // Search in All Mail to catch archived emails
+    imap.openBox("[Gmail]/All Mail", false, async (err: Error | null) => {
       if (err) {
-        result.errors.push(`Failed to open INBOX: ${err.message}`);
+        result.errors.push(`Failed to open All Mail: ${err.message}`);
         imap.end();
         return resolve(result);
       }
