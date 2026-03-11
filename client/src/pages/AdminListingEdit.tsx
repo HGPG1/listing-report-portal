@@ -595,7 +595,7 @@ export default function AdminListingEdit({ id }: Props) {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-heading text-sm font-semibold text-[#2A384C] uppercase tracking-wider">ShowingTime Requests ({showingRequests?.length ?? 0})</h3>
                 <Button
-                  onClick={() => syncShowingTimeEmailsMutation.mutate()}
+                  onClick={() => syncShowingTimeEmailsMutation.mutate({ listingId: id })}
                   disabled={syncShowingTimeEmailsMutation.isPending}
                   size="sm"
                   className="bg-[#2A384C] hover:bg-[#1e2a38] text-white font-heading tracking-wide"

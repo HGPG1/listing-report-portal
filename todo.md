@@ -220,3 +220,9 @@
 
 ## Round 19 — Cleanup Redundant Sync Buttons
 - [x] Remove "Sync Metrics" button from Active Listings page (kept "Sync All Time" instead)
+
+## Round 20 — Fix ShowingTime Sync to Search by MLS
+- [x] Update IMAP fetcher to accept mlsNumber param and search by SUBJECT containing MLS
+- [x] Update router to pass listing's MLS number to fetchShowingTimeEmails()
+- [x] Remove 50-email limit when searching by MLS (search all matching emails)
+- [x] Add duplicate prevention on emailMessageId

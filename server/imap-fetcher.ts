@@ -107,7 +107,12 @@ export async function fetchShowingTimeEmails(mlsNumber?: string): Promise<{
 
         console.log("[IMAP] INBOX opened, searching for ShowingTime emails...");
 
-        imap.search([["FROM", "callcenter@showingtime.com"]], async (err: Error | null, results: number[]) => {
+        // Build search criteria - filter by MLS in subject if provided
+        const searchCriteria: any[] = mlsNumber
+          ? [["FROM", "callcenter@showingtime.com"], ["SUBJECT", mlsNumber]]
+          : [["FROM", "callcenter@showingtime.com"]];
+
+        imap.search(searchCriteria, async (err: Error | null, results: number[]) => {
           if (err) {
             console.error("[IMAP] Search failed:", err.message);
             result.errors.push(`Search failed: ${err.message}`);
@@ -123,9 +128,9 @@ export async function fetchShowingTimeEmails(mlsNumber?: string): Promise<{
             return resolve(result);
           }
 
-          // Get most recent 50 emails (or filter by MLS if provided)
+          // Sort by most recent first; if MLS-specific search, fetch ALL matches; otherwise cap at 50
           const sortedResults = results.slice().sort((a, b) => b - a);
-          const toFetch = sortedResults.slice(0, 50);
+          const toFetch = mlsNumber ? sortedResults : sortedResults.slice(0, 50);
           const f = imap.fetch(toFetch, { bodies: ["HEADER", "TEXT"], struct: true });
 
           let processedCount = 0;
@@ -173,8 +178,15 @@ export async function fetchShowingTimeEmails(mlsNumber?: string): Promise<{
                           feedback: null,
                           rating: null,
                         };
-                        await db.insert(showingRequests).values([insertValues]);
-                        result.stored++;
+                        // Check for duplicate by emailMessageId
+                        const msgId = insertValues.emailMessageId;
+                        const existing = await db.select({ id: showingRequests.id }).from(showingRequests).where(eq(showingRequests.emailMessageId, msgId)).limit(1);
+                        if (existing.length > 0) {
+                          console.log(`[IMAP] Skipping duplicate email ${msgId}`);
+                        } else {
+                          await db.insert(showingRequests).values([insertValues]);
+                          result.stored++;
+                        }
                       }
                     }
                   } catch (dbErr) {

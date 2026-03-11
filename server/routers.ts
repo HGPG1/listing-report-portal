@@ -629,13 +629,21 @@ export const appRouter = router({
     }),
   }),
   showingtime: router({
-    syncEmails: adminProcedure.mutation(async () => {
+    syncEmails: adminProcedure.input(z.object({ listingId: z.number().optional() })).mutation(async ({ input }) => {
       try {
-        console.log(`[Router] ShowingTime email sync mutation called`);
+        console.log(`[Router] ShowingTime email sync mutation called for listingId=${input.listingId}`);
         const { fetchShowingTimeEmails } = await import("./imap-fetcher");
         
-        // Fetch latest ShowingTime emails via IMAP
-        const result = await fetchShowingTimeEmails();
+        // Get MLS number for this listing if provided
+        let mlsNumber: string | undefined;
+        if (input.listingId) {
+          const listing = await getListingById(input.listingId);
+          mlsNumber = listing?.mlsNumber ?? undefined;
+          console.log(`[Router] Syncing emails for MLS ${mlsNumber}`);
+        }
+        
+        // Fetch ShowingTime emails via IMAP, filtered by MLS if available
+        const result = await fetchShowingTimeEmails(mlsNumber);
         console.log(`[Router] IMAP fetch result:`, result);
         
         return { 
